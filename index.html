@@ -19,7 +19,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@11.0.1/dist/css/shepherd.css"/>
     <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11.0.1/dist/js/shepherd.min.js"></script>
     
-    <!-- Importation du fichier de configuration isolé Supabase -->
+    <!-- SDK Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Configuration Isolée -->
     <script src="./config.js"></script>
 
     <script>
@@ -53,7 +56,7 @@
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Styles Shepherd.js (Tutoriel adaptatif Clair / Sombre) */
+        /* Styles Shepherd.js (Tutoriel adaptatif) */
         .shepherd-element { background: #27272a !important; border: 1px solid #3f3f46 !important; border-radius: 1rem !important; z-index: 9999 !important; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5) !important; max-width: 350px !important; }
         .shepherd-header { background: transparent !important; padding: 1rem 1rem 0 !important; border: none !important; }
         .shepherd-title { color: #10b981 !important; font-weight: 700 !important; font-size: 1.1rem !important; }
@@ -67,13 +70,10 @@
         .shepherd-cancel-icon:hover { color: #f4f4f5 !important; }
         .shepherd-arrow:before { background: #27272a !important; border-color: #3f3f46 !important; }
 
-        /* MODE CLAIR (Règles strictes et harmonisées) */
+        /* MODE CLAIR */
         body.light-mode { background-color: #f0e4e4 !important; color: #27272a !important; }
         body.light-mode header.fixed, body.light-mode #side-menu > div.border-b { background-color: #cfb4b2 !important; border-color: rgba(0,0,0,0.05) !important; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        
-        /* BARRE INFÉRIEURE FORCÉE EN MODE CLAIR (#cfb4b2) */
         body.light-mode #bottom-nav { background-color: #cfb4b2 !important; border-top-color: rgba(0,0,0,0.05) !important; box-shadow: 0 -2px 10px rgba(0,0,0,0.05) !important; }
-        
         body.light-mode #side-menu { background-color: #f0e4e4 !important; border-color: rgba(0,0,0,0.1) !important; }
         body.light-mode .bg-zinc-900:not(#side-menu):not(.modal-bg), body.light-mode .bg-zinc-800:not(#side-menu):not(.modal-bg), body.light-mode .bg-zinc-800\/50, body.light-mode .bg-zinc-900\/50 { background-color: #ffffff !important; box-shadow: 0 4px 15px rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1) !important; }
         body.light-mode .modal-bg { background-color: #f0e4e4 !important; }
@@ -90,17 +90,9 @@
         body.light-mode .text-zinc-300, body.light-mode .text-zinc-400 { color: #52525b !important; }
         body.light-mode .text-zinc-500 { color: #71717a !important; }
         body.light-mode input, body.light-mode select, body.light-mode textarea { background-color: #ffffff !important; color: #18181b !important; color-scheme: light !important; border-color: rgba(0,0,0,0.1) !important;}
-        
         body.light-mode .btn-light-secondary { background-color: #f4f0f0 !important; color: #27272a !important; border: 1px solid rgba(0,0,0,0.1) !important; }
-        body.light-mode .merch-card-light { background: #ffffff !important; border-color: rgba(0,0,0,0.1) !important; }
-        body.light-mode .merch-card-light i { color: #059669 !important; }
-        body.light-mode .merch-card-light .absolute { display: none !important; }
-        
-        /* Historique mode clair & sombre distincts */
         body.light-mode .history-item-card { background-color: #f0e4e4 !important; border-color: rgba(0,0,0,0.1) !important; }
         body:not(.light-mode) .history-item-card { background-color: rgba(39, 39, 42, 0.8) !important; border-color: rgba(63, 63, 70, 0.5) !important; }
-
-        /* Bulles du Tutoriel en Mode Clair harmonisées (#f0e4e4) */
         body.light-mode .shepherd-element { background: #f0e4e4 !important; border-color: rgba(0,0,0,0.1) !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; }
         body.light-mode .shepherd-title { color: #059669 !important; }
         body.light-mode .shepherd-text { color: #27272a !important; }
@@ -113,15 +105,51 @@
 </head>
 <body class="antialiased pb-24 transition-colors duration-300">
 
+    <!-- ÉCRAN D'AUTHENTIFICATION SUPABASE (Affiché si non connecté) -->
+    <div id="auth-screen" class="fixed inset-0 bg-zinc-900 z-[200] flex items-center justify-center p-4">
+        <div class="bg-zinc-800 border border-zinc-700/80 rounded-3xl w-full max-w-md p-8 shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+            
+            <div class="flex items-center justify-center gap-3 mb-6 relative z-10">
+                <div class="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500 border border-emerald-500/30">
+                    <i class="ph-fill ph-paw-print text-2xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-emerald-500">PetCare</h1>
+            </div>
+
+            <h2 id="auth-title" class="text-xl font-bold text-zinc-100 text-center mb-2 relative z-10">Connexion à votre espace</h2>
+            <p id="auth-subtitle" class="text-xs text-zinc-400 text-center mb-6 relative z-10">Gérez la santé de vos animaux en toute sérénité.</p>
+
+            <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4 relative z-10">
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">Email</label>
+                    <input type="email" id="auth-email" required placeholder="votre@email.com" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">Mot de passe</label>
+                    <input type="password" id="auth-password" required placeholder="••••••••" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none focus:border-emerald-500">
+                </div>
+
+                <div id="auth-error" class="hidden text-xs text-red-500 bg-red-500/10 border border-red-500/30 p-3 rounded-xl text-center"></div>
+
+                <button type="submit" id="auth-submit-btn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium shadow-lg transition-colors">Se connecter</button>
+            </form>
+
+            <div class="mt-6 pt-4 border-t border-zinc-700 text-center relative z-10 space-y-2">
+                <button onclick="toggleAuthMode()" id="auth-toggle-link" class="text-xs text-zinc-400 hover:text-emerald-400 transition-colors">Pas encore de compte ? S'inscrire</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Notification Toast -->
-    <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-zinc-800 border border-emerald-500/50 text-white px-6 py-3 rounded-xl shadow-2xl z-[150] transition-all duration-300 opacity-0 -translate-y-full flex items-center gap-3 pointer-events-none w-max max-w-[90vw]">
+    <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-zinc-800 border border-emerald-500/50 text-white px-6 py-3 rounded-xl shadow-2xl z-[250] transition-all duration-300 opacity-0 -translate-y-full flex items-center gap-3 pointer-events-none w-max max-w-[90vw]">
         <i class="ph-fill ph-check-circle text-emerald-500 text-xl"></i>
         <span id="toast-msg" class="text-sm font-medium">Message</span>
     </div>
 
     <!-- En-tête (Header) Standard -->
     <header class="fixed top-0 left-0 right-0 h-16 bg-zinc-900/90 backdrop-blur-md border-b border-zinc-800 z-40 flex items-center justify-between px-4 transition-colors duration-300">
-        <button id="menu-btn" onclick="openMenu()" class="p-2 text-zinc-400 hover:text-emerald-500 transition-colors rounded-full group">
+        <button onclick="openMenu()" class="p-2 text-zinc-400 hover:text-emerald-500 transition-colors rounded-full group">
             <i class="ph ph-list text-2xl group-hover:text-emerald-500 transition-colors"></i>
         </button>
         <div class="flex items-center gap-2">
@@ -132,7 +160,7 @@
             <button id="btn-theme" onclick="toggleTheme()" class="p-2 text-zinc-400 hover:text-emerald-500 transition-colors rounded-full group">
                 <i id="theme-icon" class="ph ph-sun text-2xl group-hover:text-emerald-500 transition-colors"></i>
             </button>
-            <button id="profile-btn" onclick="openModal('profile-modal')" class="p-2 text-zinc-400 hover:text-emerald-500 transition-colors rounded-full group">
+            <button onclick="openModal('profile-modal')" class="p-2 text-zinc-400 hover:text-emerald-500 transition-colors rounded-full group">
                 <i class="ph ph-user-circle text-2xl group-hover:text-emerald-500 transition-colors"></i>
             </button>
         </div>
@@ -199,7 +227,7 @@
 
     <!-- Contenu Principal -->
     <main class="pt-20 px-4 max-w-3xl mx-auto w-full">
-        <!-- VUE DASHBOARD (Vierge) -->
+        <!-- VUE DASHBOARD -->
         <div id="view-dashboard" class="space-y-6 fade-in">
             <div class="bg-zinc-800 rounded-2xl p-5 border border-zinc-700/50 shadow-lg relative overflow-hidden transition-colors">
                 <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
@@ -311,7 +339,7 @@
         </div>
     </nav>
 
-    <!-- Modale Profil Utilisateur (Bureau 2 colonnes / Mobile 1 colonne) -->
+    <!-- Modale Profil Utilisateur -->
     <div id="profile-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex justify-center items-center p-4 backdrop-blur-sm transition-opacity">
         <div class="modal-bg bg-zinc-800 rounded-2xl w-full max-w-sm md:max-w-4xl p-6 shadow-2xl border border-zinc-700 animate-fade-in flex flex-col max-h-[90vh]">
             
@@ -322,7 +350,7 @@
 
             <div class="flex-1 overflow-y-auto hide-scrollbar md:grid md:grid-cols-2 md:gap-8 md:pr-2 pb-10 md:pb-0">
                 
-                <!-- Colonne Gauche : Identité & Paramètres -->
+                <!-- Colonne Gauche -->
                 <div class="space-y-6">
                     <div class="flex flex-col items-center">
                         <div class="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500 mb-2 border border-emerald-500/30">
@@ -332,7 +360,7 @@
                             <input type="text" id="profile-name" value="Propriétaire" class="bg-transparent text-xl font-bold text-zinc-100 text-center focus:outline-none focus:border-b border-emerald-500 w-auto min-w-[50px] max-w-[150px] transition-colors">
                             <label for="profile-name" class="cursor-pointer text-zinc-500 hover:text-emerald-500"><i class="ph-fill ph-pencil-simple text-lg"></i></label>
                         </div>
-                        <p class="text-sm text-zinc-400">utilisateur@example.com</p>
+                        <p id="user-email-display" class="text-sm text-zinc-400">utilisateur@example.com</p>
                     </div>
                     
                     <div>
@@ -365,24 +393,13 @@
                             <p class="text-xs text-red-500 mb-3 font-medium">Attention : Pensez à vérifier que vos données sont bien synchronisées avant de vous déconnecter.</p>
                             <div class="flex gap-2">
                                 <button onclick="document.getElementById('logout-confirm').classList.add('hidden'); document.getElementById('btn-logout-init').classList.remove('hidden');" class="flex-1 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-xs hover:bg-zinc-700 transition-colors">Annuler</button>
-                                <button onclick="closeModal('profile-modal'); showToast('Déconnexion réussie.'); resetLogoutBtn();" class="flex-1 py-2 bg-red-600 text-white rounded-lg text-xs shadow-lg hover:bg-red-500 transition-colors">Se déconnecter</button>
-                            </div>
-                        </div>
-                        
-                        <button onclick="document.getElementById('delete-confirm').classList.remove('hidden'); this.classList.add('hidden');" id="btn-delete-init" class="w-full py-3 bg-transparent border border-zinc-700 hover:border-red-500 hover:text-red-500 text-zinc-500 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors mt-2">
-                            <i class="ph-bold ph-trash"></i> Supprimer mon compte
-                        </button>
-                        <div id="delete-confirm" class="hidden mt-2 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-center fade-in">
-                            <p class="text-xs text-red-500 mb-3 font-medium">Action irréversible. Confirmer ?</p>
-                            <div class="flex gap-2">
-                                <button onclick="document.getElementById('delete-confirm').classList.add('hidden'); document.getElementById('btn-delete-init').classList.remove('hidden');" class="flex-1 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-xs hover:bg-zinc-700">Annuler</button>
-                                <button onclick="closeModal('profile-modal'); showToast('Données et compte supprimés.');" class="flex-1 py-2 bg-red-600 text-white rounded-lg text-xs shadow-lg hover:bg-red-500">Oui, supprimer</button>
+                                <button onclick="handleSignOut()" class="flex-1 py-2 bg-red-600 text-white rounded-lg text-xs shadow-lg hover:bg-red-500 transition-colors">Se déconnecter</button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Colonne Droite : Programme Récompenses & Gamification -->
+                <!-- Colonne Droite : Programme Récompenses -->
                 <div class="space-y-4 mt-8 md:mt-0 pt-8 md:pt-0 border-t border-zinc-700 md:border-t-0 md:border-l md:pl-8">
                     
                     <h3 class="text-lg font-bold text-zinc-100 mb-2 flex items-center gap-2"><i class="ph-fill ph-medal text-emerald-500"></i> Programme Récompenses</h3>
@@ -435,8 +452,8 @@
                         <div class="mb-3">
                             <label class="block text-[10px] text-zinc-400 mb-1">Votre code parrain :</label>
                             <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-2 flex justify-between items-center relative z-10">
-                                <span class="text-sm font-mono text-zinc-100 font-bold tracking-wider">PET-USER-9X</span>
-                                <button onclick="copyText('PET-USER-9X', 'Code parrainage copié !')" class="text-zinc-400 hover:text-emerald-500 bg-zinc-900 p-1.5 rounded-md transition-colors shadow-sm"><i class="ph-bold ph-copy text-lg"></i></button>
+                                <span id="user-referral-code" class="text-sm font-mono text-zinc-100 font-bold tracking-wider">PET-USER-9X</span>
+                                <button onclick="copyText(document.getElementById('user-referral-code').innerText, 'Code parrainage copié !')" class="text-zinc-400 hover:text-emerald-500 bg-zinc-900 p-1.5 rounded-md transition-colors shadow-sm"><i class="ph-bold ph-copy text-lg"></i></button>
                             </div>
                         </div>
 
@@ -462,8 +479,8 @@
                         <div class="mb-3">
                             <label class="block text-[10px] text-zinc-400 mb-1">Votre lien d'affiliation :</label>
                             <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-2 flex justify-between items-center relative z-10">
-                                <span class="text-xs font-mono text-zinc-100 truncate mr-2">petcare.app/aff/user9x</span>
-                                <button onclick="copyText('https://petcare.app/aff/user9x', 'Lien d\'affiliation copié !')" class="text-zinc-400 hover:text-emerald-500 bg-zinc-900 p-1.5 rounded-md transition-colors shadow-sm shrink-0"><i class="ph-bold ph-copy text-lg"></i></button>
+                                <span id="user-affiliate-link" class="text-xs font-mono text-zinc-100 truncate mr-2">petcare.app/aff/user9x</span>
+                                <button onclick="copyText(document.getElementById('user-affiliate-link').innerText, 'Lien d\'affiliation copié !')" class="text-zinc-400 hover:text-emerald-500 bg-zinc-900 p-1.5 rounded-md transition-colors shadow-sm shrink-0"><i class="ph-bold ph-copy text-lg"></i></button>
                             </div>
                         </div>
 
@@ -483,7 +500,7 @@
         </div>
     </div>
 
-    <!-- Modale Action Centrale (Bouton +) -->
+    <!-- Modale Action Centrale -->
     <div id="action-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex justify-center items-end sm:items-center p-4 backdrop-blur-sm transition-opacity">
         <div class="modal-bg bg-zinc-800 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-6 shadow-2xl border border-zinc-700 animate-slide-up sm:animate-fade-in relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeModal('action-modal')" class="absolute top-4 right-4 p-2 text-zinc-400 hover:text-emerald-500 bg-zinc-700/50 rounded-full transition-colors"><i class="ph ph-x"></i></button>
@@ -543,23 +560,6 @@
 
             <textarea id="form-notes" placeholder="Notes libres (Optionnel)..." class="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-sm text-zinc-100 outline-none mb-4 min-h-[80px] resize-none"></textarea>
             
-            <div class="mb-6 border-t border-zinc-700 pt-4 w-full flex flex-col items-stretch">
-                <label class="block text-xs font-medium text-zinc-400 mb-1">Programmer un rappel ?</label>
-                <div class="relative mb-2">
-                    <select id="form-reminder" onchange="toggleOtherReminder()" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:border-emerald-500 outline-none appearance-none">
-                        <option value="none">Pas de rappel</option><option value="1w">Dans 1 semaine</option><option value="1m">Dans 1 mois</option><option value="1y">Dans 1 an</option><option value="autre">Autre date (calendrier)...</option>
-                    </select>
-                    <i class="ph-bold ph-caret-down absolute right-4 top-1/2 transform -translate-y-1/2 text-zinc-500 pointer-events-none"></i>
-                </div>
-                
-                <div id="wrapper-reminder-other" class="relative hidden w-full bg-zinc-900 border border-zinc-700 rounded-xl overflow-hidden hover:border-emerald-500 transition-colors h-[46px] items-center justify-center flex-1 min-w-0 box-border">
-                    <div class="flex items-center gap-2 pointer-events-none absolute z-10">
-                        <i class="ph-bold ph-calendar-blank text-emerald-500 text-lg"></i>
-                        <span id="custom-date-text" class="text-sm font-medium text-zinc-400">Choisir une date</span>
-                    </div>
-                    <input type="date" id="form-reminder-other" onchange="updateCustomDateDisplay()" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
-                </div>
-            </div>
             <button onclick="saveNewEvent()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-medium shadow-lg transition-colors text-white">Enregistrer l'événement</button>
         </div>
     </div>
@@ -575,7 +575,7 @@
             <div id="contact-form-content" class="space-y-4">
                 <div>
                     <label class="block text-xs font-medium text-zinc-400 mb-1">Votre Email</label>
-                    <input type="email" value="utilisateur@example.com" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none focus:border-emerald-500 transition-colors">
+                    <input type="email" id="contact-user-email" readonly class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-400 outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-zinc-400 mb-1">Motif de votre demande</label>
@@ -633,7 +633,7 @@
                     <div class="col-span-2"><label class="block text-xs text-zinc-400 mb-1">Nom *</label><input type="text" id="pet-form-name" placeholder="Nom de votre animal" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none"></div>
                     <div>
                         <label class="block text-xs text-zinc-400 mb-1">Espèce</label>
-                        <div class="relative"><select class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 appearance-none outline-none"><option>Chien</option><option>Chat</option></select><i class="ph-bold ph-caret-down absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-500"></i></div>
+                        <div class="relative"><select class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 appearance-none outline-none"><option>Chien</option><option>Chat</option></select><i class="ph-bold ph-caret-down absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-500 pointer-events-none"></i></div>
                     </div>
                     <div><label class="block text-xs text-zinc-400 mb-1">Race</label><input type="text" placeholder="Ex: Golden Retriever" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none"></div>
                 </div>
@@ -658,7 +658,7 @@
         </div>
     </div>
 
-    <!-- Modale Recadrage Photo (Cropper) -->
+    <!-- Modale Recadrage Photo -->
     <div id="cropper-modal" class="fixed inset-0 bg-black/95 z-[100] hidden flex flex-col items-center justify-center p-4 backdrop-blur-md transition-opacity">
         <div class="w-full max-w-sm bg-zinc-800 p-5 rounded-3xl shadow-2xl border border-zinc-700 flex flex-col gap-4">
             <h3 class="text-white text-center font-bold text-lg">Ajuster la photo</h3>
@@ -683,7 +683,7 @@
         </div>
     </div>
     
-    <!-- Modale Gestion Catégories (Conservées intactes) -->
+    <!-- Modale Gestion Catégories (Catégories de base conservées) -->
     <div id="categories-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex justify-center items-center p-4 backdrop-blur-sm">
         <div class="modal-bg bg-zinc-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-zinc-700">
             <div class="flex justify-between items-center mb-6">
@@ -719,7 +719,7 @@
         </div>
     </div>
     
-    <!-- Pop-up Notation Growth Hacking -->
+    <!-- Pop-up Notation -->
     <div id="rating-popup" class="fixed inset-0 bg-black/80 z-[120] hidden flex justify-center items-center p-4 backdrop-blur-md transition-opacity">
         <div class="bg-zinc-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl border border-zinc-700 text-center animate-slide-up">
             <div class="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500 mx-auto mb-4 border border-emerald-500/30">
@@ -744,14 +744,127 @@
     
     <div id="legal-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex justify-center p-4 overflow-y-auto"><div class="modal-bg bg-zinc-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl border border-zinc-700 my-4 h-max"><div class="flex justify-between items-center mb-6"><h2 id="legal-title" class="text-xl font-bold text-zinc-100">Titre</h2><button onclick="closeModal('legal-modal')" class="text-zinc-400 hover:text-emerald-500"><i class="ph ph-x text-lg"></i></button></div><div id="legal-content" class="text-sm text-zinc-300"></div></div></div>
 
-    <!-- Script principal de l'application -->
+    <!-- Script principal et authentification -->
     <script>
+        let supabaseClient = null;
+        let currentUser = null;
+
         let pointsNewsletter = 100;
         let pointsAvis = 0; 
         let pointsParrainage = 0;
         let pointsAffiliation = 0;
         let currentSelectedRating = 0;
         let currentPopupSelectedRating = 0;
+
+        // Initialisation de Supabase
+        function initSupabase() {
+            if (window.AppConfig && window.AppConfig.SUPABASE_URL && window.AppConfig.SUPABASE_ANON_KEY && window.AppConfig.SUPABASE_URL !== 'VOTRE_SUPABASE_URL') {
+                supabaseClient = window.supabase.createClient(window.AppConfig.SUPABASE_URL, window.AppConfig.SUPABASE_ANON_KEY);
+                checkUserSession();
+            } else {
+                console.warn("Paramètres Supabase non configurés dans config.js. Mode hors-ligne actif.");
+            }
+        }
+
+        async function checkUserSession() {
+            if (!supabaseClient) return;
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                onUserLoggedIn();
+            } else {
+                onUserLoggedOut();
+            }
+
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                if (session) {
+                    currentUser = session.user;
+                    onUserLoggedIn();
+                } else {
+                    currentUser = null;
+                    onUserLoggedOut();
+                }
+            });
+        }
+
+        function onUserLoggedIn() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            if (currentUser) {
+                document.getElementById('user-email-display').innerText = currentUser.email;
+                document.getElementById('contact-user-email').value = currentUser.email;
+                
+                // Génération automatique des codes parrainage et affiliation basés sur l'email
+                const hashName = currentUser.email.split('@')[0].toUpperCase().replace(/[^A-Z0-9]/g, '');
+                document.getElementById('user-referral-code').innerText = 'PET-' + hashName;
+                document.getElementById('user-affiliate-link').innerText = 'petcare.app/aff/' + hashName.toLowerCase();
+            }
+            updateCagnotte();
+        }
+
+        function onUserLoggedOut() {
+            document.getElementById('auth-screen').classList.remove('hidden');
+        }
+
+        let isSignUpMode = false;
+        function toggleAuthMode() {
+            isSignUpMode = !isSignUpMode;
+            const title = document.getElementById('auth-title');
+            const sub = document.getElementById('auth-subtitle');
+            const btn = document.getElementById('auth-submit-btn');
+            const link = document.getElementById('auth-toggle-link');
+            
+            if (isSignUpMode) {
+                title.innerText = "Créer un compte";
+                sub.innerText = "Rejoignez PetCare et synchronisez vos données.";
+                btn.innerText = "S'inscrire";
+                link.innerText = "Déjà un compte ? Se connecter";
+            } else {
+                title.innerText = "Connexion à votre espace";
+                sub.innerText = "Gérez la santé de vos animaux en toute sérénité.";
+                btn.innerText = "Se connecter";
+                link.innerText = "Pas encore de compte ? S'inscrire";
+            }
+        }
+
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const errBox = document.getElementById('auth-error');
+            errBox.classList.add('hidden');
+
+            if (!supabaseClient) {
+                // Mode simulation si config non renseignée
+                showToast("Connexion simulée réussie");
+                currentUser = { email: email };
+                onUserLoggedIn();
+                return;
+            }
+
+            try {
+                if (isSignUpMode) {
+                    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+                    if (error) throw error;
+                    showToast("Compte créé avec succès !");
+                } else {
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+                    showToast("Connexion réussie !");
+                }
+            } catch (err) {
+                errBox.innerText = err.message || "Une erreur est survenue";
+                errBox.classList.remove('hidden');
+            }
+        }
+
+        async function handleSignOut() {
+            if (supabaseClient) {
+                await supabaseClient.auth.signOut({ scope: 'local' });
+            }
+            closeModal('profile-modal');
+            showToast("Déconnexion réussie.");
+            onUserLoggedOut();
+        }
 
         function updateCagnotte() {
             const total = pointsNewsletter + pointsAvis + pointsParrainage + pointsAffiliation;
@@ -762,8 +875,6 @@
                 const ratingSection = document.getElementById('rating-section');
                 if(ratingSection && !ratingSection.innerHTML.includes('Merci')) {
                     ratingSection.innerHTML = '<div class="text-center py-4 fade-in"><i class="ph-fill ph-check-circle text-emerald-500 text-4xl mb-2"></i><p class="text-sm text-zinc-100 font-medium">Merci pour votre avis !</p><p class="text-xs text-emerald-500 font-bold mt-1">+400 Pts ajoutés à la cagnotte</p></div>';
-                    ratingSection.classList.replace('border-zinc-700', 'border-emerald-500/50');
-                    ratingSection.classList.replace('bg-zinc-900/50', 'bg-emerald-900/10');
                 }
             }
         }
@@ -878,11 +989,6 @@
                 showToast(successMsg);
             });
         }
-        
-        function resetLogoutBtn() {
-            document.getElementById('logout-confirm').classList.add('hidden');
-            document.getElementById('btn-logout-init').classList.remove('hidden');
-        }
 
         function submitContact() {
             document.getElementById('contact-form-content').classList.add('hidden');
@@ -914,15 +1020,6 @@
         function toggleOtherHealth() {
             const s = document.getElementById('form-health-select'); const i = document.getElementById('form-health-other');
             if(s.value === 'autre') { i.classList.remove('hidden'); i.focus(); } else { i.classList.add('hidden'); i.value = ''; }
-        }
-        function toggleOtherReminder() {
-            const s = document.getElementById('form-reminder'); const w = document.getElementById('wrapper-reminder-other');
-            if(s.value === 'autre') { w.classList.remove('hidden'); w.classList.add('flex'); } else { w.classList.add('hidden'); w.classList.remove('flex'); }
-        }
-        function updateCustomDateDisplay() {
-            const val = document.getElementById('form-reminder-other').value; const text = document.getElementById('custom-date-text');
-            if (val) { text.innerText = new Date(val).toLocaleDateString('fr-FR'); text.classList.replace('text-zinc-400', 'text-zinc-100'); }
-            else { text.innerText = 'Choisir une date'; text.classList.replace('text-zinc-100', 'text-zinc-400'); }
         }
         function saveNewEvent() { showToast("Événement enregistré !"); closeModal('action-modal'); }
 
@@ -1073,6 +1170,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            initSupabase();
             updateCagnotte();
 
             const ctx = document.getElementById('weightChart').getContext('2d');
