@@ -430,12 +430,12 @@
                             <p class="font-medium text-sm text-zinc-100">Que pensez-vous de PetCare ?</p>
                             <span class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">400 Pts</span>
                         </div>
-                        <div class="flex gap-2 mb-3 text-2xl justify-center" id="star-container">
-                            <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverRating(1)" onmouseout="leaveRating()" onclick="selectRating(1)"></i>
-                            <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverRating(2)" onmouseout="leaveRating()" onclick="selectRating(2)"></i>
-                            <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverRating(3)" onmouseout="leaveRating()" onclick="selectRating(3)"></i>
-                            <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverRating(4)" onmouseout="leaveRating()" onclick="selectRating(4)"></i>
-                            <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverRating(5)" onmouseout="leaveRating()" onclick="selectRating(5)"></i>
+                        <div class="flex gap-2 mb-3 text-2xl justify-center text-zinc-600" id="star-container">
+                            <i class="ph-fill ph-star cursor-pointer transition-colors" onmouseover="hoverRating(1)" onmouseout="leaveRating()" onclick="selectRating(1)"></i>
+                            <i class="ph-fill ph-star cursor-pointer transition-colors" onmouseover="hoverRating(2)" onmouseout="leaveRating()" onclick="selectRating(2)"></i>
+                            <i class="ph-fill ph-star cursor-pointer transition-colors" onmouseover="hoverRating(3)" onmouseout="leaveRating()" onclick="selectRating(3)"></i>
+                            <i class="ph-fill ph-star cursor-pointer transition-colors" onmouseover="hoverRating(4)" onmouseout="leaveRating()" onclick="selectRating(4)"></i>
+                            <i class="ph-fill ph-star cursor-pointer transition-colors" onmouseover="hoverRating(5)" onmouseout="leaveRating()" onclick="selectRating(5)"></i>
                         </div>
                         <textarea id="rating-msg" placeholder="Laissez-nous un petit mot (Optionnel)..." class="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-xs text-zinc-100 mb-2 min-h-[60px] resize-none outline-none focus:border-emerald-500 transition-colors"></textarea>
                         <button onclick="submitRating()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-medium text-white transition-colors">Envoyer mon avis</button>
@@ -744,7 +744,7 @@
     
     <div id="legal-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex justify-center p-4 overflow-y-auto"><div class="modal-bg bg-zinc-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl border border-zinc-700 my-4 h-max"><div class="flex justify-between items-center mb-6"><h2 id="legal-title" class="text-xl font-bold text-zinc-100">Titre</h2><button onclick="closeModal('legal-modal')" class="text-zinc-400 hover:text-emerald-500"><i class="ph ph-x text-lg"></i></button></div><div id="legal-content" class="text-sm text-zinc-300"></div></div></div>
 
-    <!-- Script principal et authentification -->
+    <!-- Script principal et authentification Supabase -->
     <script>
         let supabaseClient = null;
         let currentUser = null;
@@ -756,38 +756,48 @@
         let currentSelectedRating = 0;
         let currentPopupSelectedRating = 0;
 
-        // Initialisation de Supabase
+        // Initialisation stricte de Supabase
         function initSupabase() {
             if (window.AppConfig && window.AppConfig.SUPABASE_URL && window.AppConfig.SUPABASE_ANON_KEY && window.AppConfig.SUPABASE_URL !== 'VOTRE_SUPABASE_URL') {
-                supabaseClient = window.supabase.createClient(window.AppConfig.SUPABASE_URL, window.AppConfig.SUPABASE_ANON_KEY);
-                checkUserSession();
+                try {
+                    supabaseClient = window.supabase.createClient(window.AppConfig.SUPABASE_URL, window.AppConfig.SUPABASE_ANON_KEY);
+                    checkUserSession();
+                } catch(e) {
+                    console.error("Erreur d'initialisation Supabase:", e);
+                    showAuthError("Erreur d'initialisation Supabase. Vérifiez vos clés dans config.js");
+                }
             } else {
                 console.warn("Paramètres Supabase non configurés dans config.js.");
-                const errBox = document.getElementById('auth-error');
-                errBox.innerText = "Veuillez renseigner vos identifiants Supabase dans config.js";
-                errBox.classList.remove('hidden');
+                showAuthError("Veuillez renseigner vos identifiants Supabase valides dans config.js");
             }
         }
 
         async function checkUserSession() {
             if (!supabaseClient) return;
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                currentUser = session.user;
-                onUserLoggedIn();
-            } else {
-                onUserLoggedOut();
-            }
-
-            supabaseClient.auth.onAuthStateChange((event, session) => {
-                if (session) {
+            try {
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
+                if (error) throw error;
+                
+                if (session && session.user) {
                     currentUser = session.user;
                     onUserLoggedIn();
                 } else {
-                    currentUser = null;
                     onUserLoggedOut();
                 }
-            });
+
+                supabaseClient.auth.onAuthStateChange((event, session) => {
+                    if (session && session.user) {
+                        currentUser = session.user;
+                        onUserLoggedIn();
+                    } else {
+                        currentUser = null;
+                        onUserLoggedOut();
+                    }
+                });
+            } catch (err) {
+                console.error("Erreur session:", err.message);
+                onUserLoggedOut();
+            }
         }
 
         function onUserLoggedIn() {
@@ -805,6 +815,7 @@
 
         function onUserLoggedOut() {
             document.getElementById('auth-screen').classList.remove('hidden');
+            currentUser = null;
         }
 
         let isSignUpMode = false;
@@ -828,6 +839,12 @@
             }
         }
 
+        function showAuthError(msg) {
+            const errBox = document.getElementById('auth-error');
+            errBox.innerText = msg;
+            errBox.classList.remove('hidden');
+        }
+
         async function handleAuthSubmit(e) {
             e.preventDefault();
             const email = document.getElementById('auth-email').value;
@@ -836,8 +853,7 @@
             errBox.classList.add('hidden');
 
             if (!supabaseClient) {
-                errBox.innerText = "Supabase n'est pas initialisé.";
-                errBox.classList.remove('hidden');
+                showAuthError("Supabase n'est pas initialisé. Vérifiez config.js.");
                 return;
             }
 
@@ -845,21 +861,21 @@
                 if (isSignUpMode) {
                     const { data, error } = await supabaseClient.auth.signUp({ email, password });
                     if (error) throw error;
-                    showToast("Compte créé avec succès ! Vérifiez vos emails si requis.");
+                    showToast("Compte créé avec succès ! Connectez-vous dès à présent.");
+                    toggleAuthMode(); // Basculer vers connexion
                 } else {
                     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
                     if (error) throw error;
                     showToast("Connexion réussie !");
                 }
             } catch (err) {
-                errBox.innerText = err.message || "Une erreur est survenue";
-                errBox.classList.remove('hidden');
+                showAuthError(err.message || "Une erreur est survenue lors de l'authentification.");
             }
         }
 
         async function handleSignOut() {
             if (supabaseClient) {
-                await supabaseClient.auth.signOut({ scope: 'local' });
+                await supabaseClient.auth.signOut();
             }
             closeModal('profile-modal');
             showToast("Déconnexion réussie.");
@@ -906,7 +922,6 @@
         function submitRating() { 
             if(currentSelectedRating === 0) { showToast("Veuillez sélectionner une note."); return; }
             showToast("Merci pour votre avis ! (+400 Pts)"); 
-            localStorage.setItem('petcare_rated', 'true'); 
             pointsAvis = 400;
             updateCagnotte();
         }
@@ -922,7 +937,6 @@
             updateStarsUI('popup-star-container', currentPopupSelectedRating);
             setTimeout(() => { 
                 showToast("Merci pour votre avis ! (+400 Pts)"); 
-                localStorage.setItem('petcare_rated', 'true'); 
                 pointsAvis = 400;
                 updateCagnotte();
                 closeModal('rating-popup'); 
@@ -935,11 +949,9 @@
             const bottomNav = document.getElementById('bottom-nav');
             if (body.classList.contains('light-mode')) { 
                 icon.classList.replace('ph-sun', 'ph-moon'); 
-                if(bottomNav) bottomNav.style.setProperty('background-color', '#cfb4b2', 'important');
                 showToast("Mode Clair activé"); 
             } else { 
                 icon.classList.replace('ph-moon', 'ph-sun'); 
-                if(bottomNav) bottomNav.style.removeProperty('background-color');
                 showToast("Mode Sombre activé"); 
             }
         }
