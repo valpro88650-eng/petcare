@@ -15,7 +15,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
-    <!-- Shepherd.js (Visite guidée v11 stable) -->
+    <!-- Shepherd.js (Visite guidée) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@11.0.1/dist/css/shepherd.css"/>
     <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11.0.1/dist/js/shepherd.min.js"></script>
     
@@ -56,7 +56,7 @@
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Styles Shepherd.js (Tutoriel adaptatif Dark / Light) */
+        /* Styles Shepherd.js */
         .shepherd-element { background: #27272a !important; border: 1px solid #3f3f46 !important; border-radius: 1rem !important; z-index: 9999 !important; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5) !important; max-width: 350px !important; }
         .shepherd-header { background: transparent !important; padding: 1rem 1rem 0 !important; border: none !important; }
         .shepherd-title { color: #10b981 !important; font-weight: 700 !important; font-size: 1.1rem !important; }
@@ -105,7 +105,7 @@
 </head>
 <body class="antialiased pb-24 transition-colors duration-300">
 
-    <!-- ÉCRAN D'AUTHENTIFICATION SUPABASE (Affiché si non connecté) -->
+    <!-- ÉCRAN D'AUTHENTIFICATION SUPABASE -->
     <div id="auth-screen" class="fixed inset-0 bg-zinc-900 z-[200] flex items-center justify-center p-4">
         <div class="bg-zinc-800 border border-zinc-700/80 rounded-3xl w-full max-w-md p-8 shadow-2xl relative overflow-hidden">
             <div class="absolute top-0 right-0 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
@@ -130,13 +130,14 @@
                     <input type="password" id="auth-password" required placeholder="••••••••" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none focus:border-emerald-500">
                 </div>
 
-                <div id="auth-error" class="hidden text-xs text-red-500 bg-red-500/10 border border-red-500/30 p-3 rounded-xl text-center"></div>
+                <!-- Message d'erreur épuré (sans code technique barbare) -->
+                <div id="auth-error" class="hidden text-xs text-amber-400 bg-amber-400/10 border border-amber-400/30 p-3 rounded-xl text-center"></div>
 
                 <button type="submit" id="auth-submit-btn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium shadow-lg transition-colors">Se connecter</button>
             </form>
 
             <div class="mt-6 pt-4 border-t border-zinc-700 text-center relative z-10 space-y-2">
-                <button onclick="toggleAuthMode()" id="auth-toggle-link" class="text-xs text-zinc-400 hover:text-emerald-400 transition-colors">Pas encore de compte ? S'inscrire</button>
+                <button type="button" onclick="toggleAuthMode()" id="auth-toggle-link" class="text-xs text-zinc-400 hover:text-emerald-400 transition-colors">Pas encore de compte ? S'inscrire</button>
             </div>
         </div>
     </div>
@@ -191,26 +192,19 @@
                     <i class="ph-fill ph-upload-simple text-xl text-emerald-500"></i><span>Importer données</span>
                 </button>
                 <input type="file" id="import-file" hidden accept=".json" onchange="importJSON(event)">
-                <button onclick="showToast('Connexion Drive à configurer')" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg">
-                    <i class="ph-fill ph-google-logo text-xl text-emerald-500"></i><span>Sauvegarder sur Drive</span>
-                </button>
             </div>
             <div class="mb-6">
                 <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 px-2">Application</p>
                 <button id="btn-guide" onclick="closeMenu(); setTimeout(startAppTour, 300);" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg">
                     <i class="ph-fill ph-info text-xl text-emerald-500"></i><span>Guide de démarrage</span>
                 </button>
-                
                 <div class="h-px bg-zinc-800/80 my-2 mx-4 transition-colors"></div>
-                
                 <a href="https://ton-site.com/boutique" target="_blank" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg">
                     <i class="ph-fill ph-shopping-bag text-xl text-emerald-500"></i><span>Boutique & Accessoires</span>
                 </a>
-                
                 <button onclick="openModal('contact-modal'); closeMenu();" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg">
                     <i class="ph-fill ph-envelope-simple text-xl text-emerald-500"></i><span>Nous contacter</span>
                 </button>
-                
                 <button onclick="openLegalPage('mentions')" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg">
                     <i class="ph-fill ph-scales text-xl text-emerald-500"></i><span>Mentions légales</span>
                 </button>
@@ -291,7 +285,7 @@
                 </div>
             </div>
 
-            <div class="mt-8 bg-gradient-to-br from-zinc-800 to-zinc-900 merch-card-light rounded-2xl p-4 border border-zinc-700 shadow-lg relative overflow-hidden transition-colors">
+            <div class="mt-8 bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-2xl p-4 border border-zinc-700 shadow-lg relative overflow-hidden transition-colors">
                 <h3 class="text-sm font-bold text-zinc-100 mb-1 flex items-center gap-2"><i class="ph-fill ph-gift text-emerald-500"></i> Imprimez vos souvenirs !</h3>
                 <p class="text-xs text-zinc-400 mb-4">Créez des mugs, porte-clés ou affiches avec la photo de votre animal via notre partenaire.</p>
                 <div class="flex gap-3 mb-4 overflow-x-auto pb-2 hide-scrollbar">
@@ -441,14 +435,13 @@
                         <button onclick="submitRating()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-medium text-white transition-colors">Envoyer mon avis</button>
                     </div>
 
-                    <!-- Parrainage (+250 Pts) avec Code unique -->
+                    <!-- Parrainage (+250 Pts) -->
                     <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-700 relative overflow-hidden">
                         <div class="flex justify-between items-center mb-2 relative z-10">
                             <h3 class="font-medium text-sm text-zinc-100 flex items-center gap-2"><i class="ph-fill ph-users text-emerald-500"></i> Parrainage</h3>
                             <span class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">250 Pts</span>
                         </div>
                         <p class="text-xs text-zinc-400 mb-3 relative z-10">5 filleuls = <strong class="text-emerald-500">50% de réduction</strong> !</p>
-                        
                         <div class="mb-3">
                             <label class="block text-[10px] text-zinc-400 mb-1">Votre code parrain :</label>
                             <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-2 flex justify-between items-center relative z-10">
@@ -456,41 +449,20 @@
                                 <button onclick="copyText(document.getElementById('user-referral-code').innerText, 'Code parrainage copié !')" class="text-zinc-400 hover:text-emerald-500 bg-zinc-900 p-1.5 rounded-md transition-colors shadow-sm"><i class="ph-bold ph-copy text-lg"></i></button>
                             </div>
                         </div>
-
-                        <div class="mb-1 relative z-10">
-                            <div class="flex justify-between text-[10px] text-zinc-300 mb-1">
-                                <span>Progression Filleuls</span>
-                                <span class="font-medium text-emerald-400">0 / 5</span>
-                            </div>
-                            <div class="w-full bg-zinc-800 rounded-full h-1.5 border border-zinc-700/50">
-                                <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 0%"></div>
-                            </div>
-                        </div>
                     </div>
 
-                    <!-- Affiliation (+250 Pts) avec Lien unique -->
+                    <!-- Affiliation (+250 Pts) -->
                     <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-700 relative overflow-hidden">
                         <div class="flex justify-between items-center mb-2 relative z-10">
                             <h3 class="font-medium text-sm text-zinc-100 flex items-center gap-2"><i class="ph-fill ph-handshake text-emerald-500"></i> Affiliation</h3>
                             <span class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">250 Pts</span>
                         </div>
                         <p class="text-xs text-zinc-400 mb-3 relative z-10">5 affiliés actifs = <strong class="text-emerald-500">50% de réduction</strong> !</p>
-                        
                         <div class="mb-3">
                             <label class="block text-[10px] text-zinc-400 mb-1">Votre lien d'affiliation :</label>
                             <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-2 flex justify-between items-center relative z-10">
                                 <span id="user-affiliate-link" class="text-xs font-mono text-zinc-100 truncate mr-2">petcare.app/aff/user9x</span>
                                 <button onclick="copyText(document.getElementById('user-affiliate-link').innerText, 'Lien d\'affiliation copié !')" class="text-zinc-400 hover:text-emerald-500 bg-zinc-900 p-1.5 rounded-md transition-colors shadow-sm shrink-0"><i class="ph-bold ph-copy text-lg"></i></button>
-                            </div>
-                        </div>
-
-                        <div class="mb-1 relative z-10">
-                            <div class="flex justify-between text-[10px] text-zinc-300 mb-1">
-                                <span>Progression Affiliés</span>
-                                <span class="font-medium text-emerald-400">0 / 5</span>
-                            </div>
-                            <div class="w-full bg-zinc-800 rounded-full h-1.5 border border-zinc-700/50">
-                                <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 0%"></div>
                             </div>
                         </div>
                     </div>
@@ -525,15 +497,15 @@
             </div>
 
             <div class="grid grid-cols-3 gap-3 mb-6 border-t border-zinc-700 pt-4">
-                <button id="btn-type-health" onclick="selectActionForm('health')" class="flex flex-col items-center gap-2 p-3 bg-zinc-700 border-emerald-500 border rounded-xl text-white">
+                <button type="button" id="btn-type-health" onclick="selectActionForm('health')" class="flex flex-col items-center gap-2 p-3 bg-zinc-700 border-emerald-500 border rounded-xl text-white">
                     <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center"><i class="ph-fill ph-syringe text-xl"></i></div>
                     <span class="text-xs font-medium">Santé</span>
                 </button>
-                <button id="btn-type-weight" onclick="selectActionForm('weight')" class="flex flex-col items-center gap-2 p-3 bg-zinc-900 border-zinc-700 border rounded-xl text-zinc-400">
+                <button type="button" id="btn-type-weight" onclick="selectActionForm('weight')" class="flex flex-col items-center gap-2 p-3 bg-zinc-900 border-zinc-700 border rounded-xl text-zinc-400">
                     <div class="w-10 h-10 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center"><i class="ph-fill ph-scales text-xl"></i></div>
                     <span class="text-xs font-medium">Poids</span>
                 </button>
-                <button id="btn-type-food" onclick="selectActionForm('food')" class="flex flex-col items-center gap-2 p-3 bg-zinc-900 border-zinc-700 border rounded-xl text-zinc-400">
+                <button type="button" id="btn-type-food" onclick="selectActionForm('food')" class="flex flex-col items-center gap-2 p-3 bg-zinc-900 border-zinc-700 border rounded-xl text-zinc-400">
                     <div class="w-10 h-10 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center"><i class="ph-fill ph-bone text-xl"></i></div>
                     <span class="text-xs font-medium">Repas</span>
                 </button>
@@ -617,9 +589,9 @@
             </div>
 
             <div class="flex gap-2 border-b border-zinc-700 mb-5 pb-1">
-                <button onclick="switchPetTab('tab-identity')" id="btn-tab-identity" class="px-3 py-2 text-sm font-medium text-emerald-400 border-b-2 border-emerald-500">Identité</button>
-                <button onclick="switchPetTab('tab-health')" id="btn-tab-health" class="px-3 py-2 text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-emerald-400">Santé & Médical</button>
-                <button onclick="switchPetTab('tab-reminders')" id="btn-tab-reminders" class="px-3 py-2 text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-emerald-400">Rappels</button>
+                <button type="button" onclick="switchPetTab('tab-identity')" id="btn-tab-identity" class="px-3 py-2 text-sm font-medium text-emerald-400 border-b-2 border-emerald-500">Identité</button>
+                <button type="button" onclick="switchPetTab('tab-health')" id="btn-tab-health" class="px-3 py-2 text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-emerald-400">Santé & Médical</button>
+                <button type="button" onclick="switchPetTab('tab-reminders')" id="btn-tab-reminders" class="px-3 py-2 text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-emerald-400">Rappels</button>
             </div>
             
             <div id="tab-identity" class="space-y-4 block">
@@ -664,11 +636,11 @@
             <h3 class="text-white text-center font-bold text-lg">Ajuster la photo</h3>
             <div class="w-full bg-black relative rounded-xl overflow-hidden border border-zinc-700" style="height: 300px;"><img id="cropper-image" src="" class="block max-w-full"></div>
             <div class="flex gap-3 mt-2">
-                <button onclick="document.getElementById('avatar-upload-real').click()" class="flex-1 bg-zinc-700 hover:bg-zinc-600 text-white py-3 rounded-xl font-medium text-sm"><i class="ph-bold ph-image"></i> Changer</button>
+                <button type="button" onclick="document.getElementById('avatar-upload-real').click()" class="flex-1 bg-zinc-700 hover:bg-zinc-600 text-white py-3 rounded-xl font-medium text-sm"><i class="ph-bold ph-image"></i> Changer</button>
                 <input type="file" id="avatar-upload-real" hidden accept="image/*" onchange="handleNewAvatarFile(event)">
-                <button onclick="saveCrop()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-medium text-sm"><i class="ph-bold ph-check"></i> Valider</button>
+                <button type="button" onclick="saveCrop()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-medium text-sm"><i class="ph-bold ph-check"></i> Valider</button>
             </div>
-            <button onclick="closeModal('cropper-modal')" class="text-zinc-500 hover:text-white text-sm mt-2">Annuler</button>
+            <button type="button" onclick="closeModal('cropper-modal')" class="text-zinc-500 hover:text-white text-sm mt-2">Annuler</button>
         </div>
     </div>
 
@@ -756,7 +728,6 @@
         let currentSelectedRating = 0;
         let currentPopupSelectedRating = 0;
 
-        // Initialisation stricte de Supabase
         function initSupabase() {
             if (window.AppConfig && window.AppConfig.SUPABASE_URL && window.AppConfig.SUPABASE_ANON_KEY && window.AppConfig.SUPABASE_URL !== 'VOTRE_SUPABASE_URL') {
                 try {
@@ -764,11 +735,10 @@
                     checkUserSession();
                 } catch(e) {
                     console.error("Erreur d'initialisation Supabase:", e);
-                    showAuthError("Erreur d'initialisation Supabase. Vérifiez vos clés dans config.js");
+                    showAuthError("Impossible de joindre le service d'authentification. Vérifiez vos clés.");
                 }
             } else {
-                console.warn("Paramètres Supabase non configurés dans config.js.");
-                showAuthError("Veuillez renseigner vos identifiants Supabase valides dans config.js");
+                showAuthError("Veuillez renseigner vos identifiants Supabase dans config.js");
             }
         }
 
@@ -853,7 +823,7 @@
             errBox.classList.add('hidden');
 
             if (!supabaseClient) {
-                showAuthError("Supabase n'est pas initialisé. Vérifiez config.js.");
+                showAuthError("Service non disponible. Vérifiez la configuration.");
                 return;
             }
 
@@ -861,15 +831,24 @@
                 if (isSignUpMode) {
                     const { data, error } = await supabaseClient.auth.signUp({ email, password });
                     if (error) throw error;
-                    showToast("Compte créé avec succès ! Connectez-vous dès à présent.");
-                    toggleAuthMode(); // Basculer vers connexion
+                    showToast("Compte créé avec succès ! Connectez-vous.");
+                    toggleAuthMode();
                 } else {
                     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
                     if (error) throw error;
                     showToast("Connexion réussie !");
                 }
             } catch (err) {
-                showAuthError(err.message || "Une erreur est survenue lors de l'authentification.");
+                // Traduction d'erreur propre pour l'utilisateur lambda
+                let cleanMsg = "Une erreur est survenue lors de l'authentification. Veuillez réessayer.";
+                if (err.message.includes("Invalid login credentials")) {
+                    cleanMsg = "Email ou mot de passe incorrect.";
+                } else if (err.message.includes("User already registered")) {
+                    cleanMsg = "Cet email possède déjà un compte. Connectez-vous.";
+                } else if (err.message.includes("Password should be")) {
+                    cleanMsg = "Le mot de passe doit contenir au moins 6 caractères.";
+                }
+                showAuthError(cleanMsg);
             }
         }
 
@@ -946,7 +925,6 @@
         function toggleTheme() {
             const body = document.body; const icon = document.getElementById('theme-icon');
             body.classList.toggle('light-mode');
-            const bottomNav = document.getElementById('bottom-nav');
             if (body.classList.contains('light-mode')) { 
                 icon.classList.replace('ph-sun', 'ph-moon'); 
                 showToast("Mode Clair activé"); 
@@ -1107,10 +1085,9 @@
 
             tour.addStep({
                 title: 'Bienvenue sur PetCare ! 🐾',
-                text: '<b>Ne cliquez pas sur l\'application</b> pour le moment.<br><br>Utilisez les boutons <b>Suivant</b> de cette bulle pour découvrir comment maîtriser l\'outil étape par étape !',
+                text: 'Utilisez les boutons <b>Suivant</b> de cette bulle pour découvrir comment maîtriser l\'outil étape par étape !',
                 buttons: [ { action: tour.cancel, text: 'Passer', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
             });
-
             tour.addStep({
                 title: 'Créez vos compagnons 🐶',
                 text: 'Ouvrez ce menu pour ajouter de nouveaux animaux et gérer toutes leurs fiches d\'identité.',
@@ -1118,66 +1095,25 @@
                 beforeShowPromise: openMenuWait,
                 buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
             });
-
             tour.addStep({
                 title: 'Catégories sur-mesure 🏷️',
                 text: 'Créez vos propres catégories (ostéopathe, traitement, friandise...) pour personnaliser l\'application.',
                 attachTo: { element: '#tour-menu-categories', on: 'right' },
                 buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
             });
-
             tour.addStep({
                 title: 'Le Bouton Magique ✨',
-                text: 'Le cœur de l\'app ! Au quotidien, cliquez ici pour ajouter un nouveau poids, un soin, ou programmer un rappel en 3 secondes.',
+                text: 'Le cœur de l\'app ! Cliquez ici pour ajouter un nouveau poids, un soin, ou programmer un rappel en 3 secondes.',
                 attachTo: { element: '#main-add-btn', on: 'top' },
                 beforeShowPromise: closeMenuWait,
                 buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
             });
-
             tour.addStep({
                 title: 'Suivi Santé 📈',
-                text: 'Retrouvez ici l\'historique complet de tous vos enregistrements (poids, soins, repas) et graphiques interactifs.',
+                text: 'Retrouvez ici l\'historique complet de tous vos enregistrements et graphiques interactifs.',
                 attachTo: { element: '#nav-health', on: 'top' },
-                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
+                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Terminer' } ]
             });
-
-            tour.addStep({
-                title: 'Galerie & Souvenirs 📸',
-                text: 'Stockez vos meilleures photos ici. Vous pourrez même les imprimer sur des mugs ou porte-clés via nos partenaires !',
-                attachTo: { element: '#nav-photos', on: 'top' },
-                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
-            });
-
-            tour.addStep({
-                title: 'Carnet d\'Adresses 📖',
-                text: 'Gardez toujours sous la main les numéros d\'urgence de votre vétérinaire ou toiletteur.',
-                attachTo: { element: '#nav-carnet', on: 'top' },
-                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
-            });
-
-            tour.addStep({
-                title: 'Vos données en sécurité 💾',
-                text: 'Importez, exportez ou connectez Google Drive pour sauvegarder toutes vos données.',
-                attachTo: { element: '#tour-menu-export', on: 'right' },
-                beforeShowPromise: openMenuWait,
-                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
-            });
-
-            tour.addStep({
-                title: 'Gagnez votre Abonnement ! 🎁',
-                text: 'Découvrez notre programme de fidélité dans votre profil. Cumulez 1000 points pour obtenir <strong>l\'application 100% gratuite</strong> l\'année suivante !',
-                attachTo: { element: '#profile-btn', on: 'bottom' },
-                beforeShowPromise: closeMenuWait,
-                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
-            });
-
-            tour.addStep({
-                title: 'Confort Visuel 🌗',
-                text: 'Adaptez l\'apparence de l\'application à la sensibilité de vos yeux grâce à ce bouton.<br><br><b>Bonne utilisation !</b>',
-                attachTo: { element: '#btn-theme', on: 'bottom' },
-                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.complete, text: 'Terminer' } ]
-            });
-
             tour.start();
         }
 
