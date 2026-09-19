@@ -130,7 +130,7 @@
                     <input type="password" id="auth-password" required placeholder="••••••••" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none focus:border-emerald-500">
                 </div>
 
-                <!-- Message d'erreur épuré (sans code technique barbare) -->
+                <!-- Message d'erreur utilisateur (courtois et sans jargon) -->
                 <div id="auth-error" class="hidden text-xs text-amber-400 bg-amber-400/10 border border-amber-400/30 p-3 rounded-xl text-center"></div>
 
                 <button type="submit" id="auth-submit-btn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium shadow-lg transition-colors">Se connecter</button>
@@ -781,6 +781,15 @@
                 document.getElementById('user-affiliate-link').innerText = 'petcare.app/aff/' + hashName.toLowerCase();
             }
             updateCagnotte();
+
+            // Vérifie si c'est la première connexion pour lancer le guide
+            const hasSeenTour = localStorage.getItem('petcare_tour_seen_' + currentUser.id);
+            if (!hasSeenTour) {
+                setTimeout(() => {
+                    startAppTour();
+                    localStorage.setItem('petcare_tour_seen_' + currentUser.id, 'true');
+                }, 800);
+            }
         }
 
         function onUserLoggedOut() {
@@ -839,11 +848,8 @@
                     showToast("Connexion réussie !");
                 }
             } catch (err) {
-                // Traduction d'erreur propre pour l'utilisateur lambda
-                let cleanMsg = "Une erreur est survenue lors de l'authentification. Veuillez réessayer.";
-                if (err.message.includes("Invalid login credentials")) {
-                    cleanMsg = "Email ou mot de passe incorrect.";
-                } else if (err.message.includes("User already registered")) {
+                let cleanMsg = "Identifiants incorrects ou compte non trouvé. Veuillez réessayer.";
+                if (err.message.includes("User already registered")) {
                     cleanMsg = "Cet email possède déjà un compte. Connectez-vous.";
                 } else if (err.message.includes("Password should be")) {
                     cleanMsg = "Le mot de passe doit contenir au moins 6 caractères.";
