@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PetCare PWA</title>
+    
+    <!-- Tailwind CSS & Librairies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Cropper.js (Recadrage photo) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <!-- Shepherd.js (Visite guidée) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@11.0.1/dist/css/shepherd.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11.0.1/dist/js/shepherd.min.js"></script>
+    
+    <!-- Importation du fichier de configuration isolé Supabase -->
+    <script src="./config.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        zinc: { 850: '#202022', 900: '#18181b', 950: '#09090b' },
+                        emerald: { 400: '#34d399', 500: '#10b981', 600: '#059669' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body { background-color: #18181b; color: #f4f4f5; -webkit-tap-highlight-color: transparent; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+        input[type="checkbox"] { accent-color: #10b981; }
+        
+        .cropper-view-box, .cropper-face { border-radius: 50%; }
+        .cropper-modal { opacity: 0.8; background-color: #000; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Styles Shepherd.js (Tutoriel adaptatif Clair / Sombre) */
+        .shepherd-element { background: #27272a !important; border: 1px solid #3f3f46 !important; border-radius: 1rem !important; z-index: 9999 !important; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5) !important; max-width: 350px !important; }
+        .shepherd-header { background: transparent !important; padding: 1rem 1rem 0 !important; border: none !important; }
+        .shepherd-title { color: #10b981 !important; font-weight: 700 !important; font-size: 1.1rem !important; }
+        .shepherd-text { color: #f4f4f5 !important; font-size: 0.9rem !important; line-height: 1.5 !important; padding: 1rem !important; }
+        .shepherd-footer { padding: 0 1rem 1rem !important; border: none !important; }
+        .shepherd-button { background: #10b981 !important; color: white !important; border-radius: 0.5rem !important; padding: 0.5rem 1rem !important; font-weight: 500 !important; transition: all 0.2s !important; border: none !important; cursor: pointer; }
+        .shepherd-button:hover { background: #059669 !important; }
+        .shepherd-button-secondary { background: #3f3f46 !important; color: #f4f4f5 !important; }
+        .shepherd-button-secondary:hover { background: #52525b !important; }
+        .shepherd-cancel-icon { color: #a1a1aa !important; }
+        .shepherd-cancel-icon:hover { color: #f4f4f5 !important; }
+        .shepherd-arrow:before { background: #27272a !important; border-color: #3f3f46 !important; }
+
+        /* MODE CLAIR (Règles strictes et harmonisées) */
+        body.light-mode { background-color: #f0e4e4 !important; color: #27272a !important; }
+        body.light-mode header.fixed, body.light-mode #side-menu > div.border-b { background-color: #cfb4b2 !important; border-color: rgba(0,0,0,0.05) !important; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        
+        /* BARRE INFÉRIEURE FORCÉE EN MODE CLAIR (#cfb4b2) */
+        body.light-mode #bottom-nav { background-color: #cfb4b2 !important; border-top-color: rgba(0,0,0,0.05) !important; box-shadow: 0 -2px 10px rgba(0,0,0,0.05) !important; }
+        
+        body.light-mode #side-menu { background-color: #f0e4e4 !important; border-color: rgba(0,0,0,0.1) !important; }
+        body.light-mode .bg-zinc-900:not(#side-menu):not(.modal-bg), body.light-mode .bg-zinc-800:not(#side-menu):not(.modal-bg), body.light-mode .bg-zinc-800\/50, body.light-mode .bg-zinc-900\/50 { background-color: #ffffff !important; box-shadow: 0 4px 15px rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1) !important; }
+        body.light-mode .modal-bg { background-color: #f0e4e4 !important; }
+        body.light-mode #reward-banner { background-image: none !important; background-color: #ffffff !important; border-color: rgba(0,0,0,0.1) !important; box-shadow: 0 4px 15px rgba(0,0,0,0.04) !important; }
+        body.light-mode .bg-zinc-700.border-emerald-500 { background-color: #cfb4b2 !important; border-color: #cfb4b2 !important; color: #27272a !important; }
+        body.light-mode .border-zinc-900 { border-color: #cfb4b2 !important; } 
+        body.light-mode #main-add-btn { background-color: #f0e4e4 !important; color: #71717a !important; box-shadow: 0 4px 10px rgba(0,0,0,0.1) !important; border: 4px solid #cfb4b2 !important; } 
+        body.light-mode .text-emerald-500, body.light-mode .text-emerald-400 { color: #059669 !important; }
+        body.light-mode .bg-emerald-500\/10, body.light-mode .bg-emerald-500\/20 { background-color: #ecfdf5 !important; }
+        body.light-mode .border-emerald-500\/30 { border-color: #a7f3d0 !important; }
+        body.light-mode .border-emerald-500 { border-color: #059669 !important; }
+        body.light-mode .bg-emerald-600 { background-color: #059669 !important; color: #ffffff !important; }
+        body.light-mode .text-white, body.light-mode .text-zinc-100 { color: #18181b !important; }
+        body.light-mode .text-zinc-300, body.light-mode .text-zinc-400 { color: #52525b !important; }
+        body.light-mode .text-zinc-500 { color: #71717a !important; }
+        body.light-mode input, body.light-mode select, body.light-mode textarea { background-color: #ffffff !important; color: #18181b !important; color-scheme: light !important; border-color: rgba(0,0,0,0.1) !important;}
+        
+        body.light-mode .btn-light-secondary { background-color: #f4f0f0 !important; color: #27272a !important; border: 1px solid rgba(0,0,0,0.1) !important; }
+        body.light-mode .merch-card-light { background: #ffffff !important; border-color: rgba(0,0,0,0.1) !important; }
+        body.light-mode .merch-card-light i { color: #059669 !important; }
+        body.light-mode .merch-card-light .absolute { display: none !important; }
+        
+        /* Historique mode clair & sombre distincts */
+        body.light-mode .history-item-card { background-color: #f0e4e4 !important; border-color: rgba(0,0,0,0.1) !important; }
+        body:not(.light-mode) .history-item-card { background-color: rgba(39, 39, 42, 0.8) !important; border-color: rgba(63, 63, 70, 0.5) !important; }
+
+        /* Bulles du Tutoriel en Mode Clair harmonisées (#f0e4e4) */
+        body.light-mode .shepherd-element { background: #f0e4e4 !important; border-color: rgba(0,0,0,0.1) !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; }
+        body.light-mode .shepherd-title { color: #059669 !important; }
+        body.light-mode .shepherd-text { color: #27272a !important; }
+        body.light-mode .shepherd-cancel-icon { color: #71717a !important; }
+        body.light-mode .shepherd-cancel-icon:hover { color: #27272a !important; }
+        body.light-mode .shepherd-arrow:before { background: #f0e4e4 !important; border-color: rgba(0,0,0,0.1) !important; }
+        body.light-mode .shepherd-button-secondary { background: #ffffff !important; border: 1px solid rgba(0,0,0,0.1) !important; color: #27272a !important; }
+        body.light-mode .shepherd-button-secondary:hover { background: #e4e4e7 !important; }
+    </style>
+</head>
+<body class="antialiased pb-24 transition-colors duration-300">
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-zinc-800 border border-emerald-500/50 text-white px-6 py-3 rounded-xl shadow-2xl z-[150] transition-all duration-300 opacity-0 -translate-y-full flex items-center gap-3 pointer-events-none w-max max-w-[90vw]">
+        <i class="ph-fill ph-check-circle text-emerald-500 text-xl"></i>
+        <span id="toast-msg" class="text-sm font-medium">Message</span>
+    </div>
+
+    <!-- En-tête (Header) Standard -->
+    <header class="fixed top-0 left-0 right-0 h-16 bg-zinc-900/90 backdrop-blur-md border-b border-zinc-800 z-40 flex items-center justify-between px-4 transition-colors duration-300">
+        <button id="menu-btn" onclick="openMenu()" class="p-2 text-zinc-400 hover:text-emerald-500 transition-colors rounded-full group">
+            <i class="ph ph-list text-2xl group-hover:text-emerald-500 transition-colors"></i>
+        </button>
+        <div class="flex items-center gap-2">
+            <i class="ph-fill ph-paw-print text-emerald-500 text-xl"></i>
+            <h1 class="text-lg font-bold text-emerald-500">PetCare</h1>
+        </div>
+        <div class="flex items-center gap-1">
+            <button id="btn-theme" onclick="toggleTheme()" class="p-2 text-zinc-400 hover:text-emerald-500 transition-colors rounded-full group">
+                <i id="theme-icon" class="ph ph-sun text-2xl group-hover:text-emerald-500 transition-colors"></i>
+            </button>
+            <button id="profile-btn" onclick="openModal('profile-modal')" class="p-2 text-zinc-400 hover:text-emerald-500 transition-colors rounded-full group">
+                <i class="ph ph-user-circle text-2xl group-hover:text-emerald-500 transition-colors"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Menu Latéral (Drawer) -->
+    <div id="side-menu" class="fixed inset-y-0 left-0 w-72 bg-zinc-900 border-r border-zinc-800 z-50 transform -translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
+        <div class="p-6 border-b border-zinc-800 flex justify-between items-center transition-colors">
+            <h2 class="font-bold text-xl text-zinc-100">Menu</h2>
+            <button onclick="closeMenu()" class="text-zinc-400 hover:text-emerald-500 transition-colors"><i class="ph ph-x text-xl"></i></button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-2 transition-colors">
+            <div class="mb-6">
+                <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 px-2">Gestion</p>
+                <button id="tour-menu-pets" onclick="openModal('pets-modal'); closeMenu();" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg group">
+                    <i class="ph-fill ph-paw-print text-xl text-emerald-500"></i><span>Mes Animaux</span>
+                </button>
+                <button id="tour-menu-categories" onclick="openModal('categories-modal'); closeMenu();" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg group">
+                    <i class="ph-fill ph-tag text-xl text-emerald-500"></i><span>Catégories Personnalisées</span>
+                </button>
+            </div>
+            <div class="mb-6" id="tour-menu-export">
+                <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 px-2">Sauvegarde</p>
+                <button onclick="exportJSON()" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg">
+                    <i class="ph-fill ph-download-simple text-xl text-emerald-500"></i><span>Exporter données</span>
+                </button>
+                <button onclick="document.getElementById('import-file').click()" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg">
+                    <i class="ph-fill ph-upload-simple text-xl text-emerald-500"></i><span>Importer données</span>
+                </button>
+                <input type="file" id="import-file" hidden accept=".json" onchange="importJSON(event)">
+                <button onclick="showToast('Connexion Drive à configurer')" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg">
+                    <i class="ph-fill ph-google-logo text-xl text-emerald-500"></i><span>Sauvegarder sur Drive</span>
+                </button>
+            </div>
+            <div class="mb-6">
+                <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 px-2">Application</p>
+                <button id="btn-guide" onclick="closeMenu(); setTimeout(startAppTour, 300);" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg">
+                    <i class="ph-fill ph-info text-xl text-emerald-500"></i><span>Guide de démarrage</span>
+                </button>
+                
+                <div class="h-px bg-zinc-800/80 my-2 mx-4 transition-colors"></div>
+                
+                <a href="https://ton-site.com/boutique" target="_blank" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg">
+                    <i class="ph-fill ph-shopping-bag text-xl text-emerald-500"></i><span>Boutique & Accessoires</span>
+                </a>
+                
+                <button onclick="openModal('contact-modal'); closeMenu();" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg">
+                    <i class="ph-fill ph-envelope-simple text-xl text-emerald-500"></i><span>Nous contacter</span>
+                </button>
+                
+                <button onclick="openLegalPage('mentions')" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg">
+                    <i class="ph-fill ph-scales text-xl text-emerald-500"></i><span>Mentions légales</span>
+                </button>
+                <button onclick="openLegalPage('rgpd')" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg">
+                    <i class="ph-fill ph-shield-check text-xl text-emerald-500"></i><span>Politique RGPD</span>
+                </button>
+                <button onclick="openLegalPage('cgu')" class="w-full flex items-center gap-3 px-4 py-3 text-zinc-300 hover:text-emerald-500 transition-colors text-left rounded-lg">
+                    <i class="ph-fill ph-file-text text-xl text-emerald-500"></i><span>Conditions d'utilisation</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="menu-overlay" onclick="closeMenu()" class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm transition-opacity opacity-0"></div>
+
+    <!-- Contenu Principal -->
+    <main class="pt-20 px-4 max-w-3xl mx-auto w-full">
+        <!-- VUE DASHBOARD (Vierge) -->
+        <div id="view-dashboard" class="space-y-6 fade-in">
+            <div class="bg-zinc-800 rounded-2xl p-5 border border-zinc-700/50 shadow-lg relative overflow-hidden transition-colors">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                <div class="flex items-center gap-5 relative z-10">
+                    <img id="main-pet-avatar" src="https://placehold.co/200x200/27272a/f4f4f5?text=Animal" crossorigin="anonymous" alt="Avatar" class="w-20 h-20 rounded-full object-cover border-2 border-emerald-500/30 cursor-pointer shadow-md" onclick="openPetForm()">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-2xl font-bold text-zinc-100 cursor-pointer hover:text-emerald-400 transition-colors" onclick="openPetForm()">Aucun animal</h1>
+                            <button onclick="openPetForm()" class="text-zinc-500 hover:text-emerald-500 p-1 bg-zinc-900 rounded-lg border border-zinc-700 shadow-sm"><i class="ph-fill ph-pencil-simple"></i></button>
+                        </div>
+                        <p class="text-zinc-400 text-sm">Cliquez pour ajouter votre compagnon</p>
+                        <div class="flex gap-2 mt-2">
+                            <span class="bg-zinc-900 text-zinc-400 text-xs px-2 py-1 rounded-md border border-zinc-700">0 kg</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h2 class="text-lg font-semibold text-zinc-100 mb-4">Historique récent</h2>
+                <div id="history-container" class="space-y-3">
+                    <div class="bg-zinc-800/50 p-4 rounded-xl text-center text-zinc-500 text-sm border border-zinc-700/30">
+                        Aucun événement récent. Utilisez le bouton <i class="ph-bold ph-plus text-emerald-500"></i> en bas pour commencer.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VUE SANTE & REGISTRE CENTRALISE -->
+        <div id="view-health" class="hidden space-y-6 fade-in w-full">
+            <h2 class="text-xl font-bold text-zinc-100">Suivi Santé & Historique complet</h2>
+            
+            <div class="bg-zinc-800 rounded-2xl p-5 border border-zinc-700/50 shadow-lg w-full">
+                <h3 class="text-sm font-semibold text-zinc-400 mb-4">Évolution du Poids (kg)</h3>
+                <div class="relative h-56 w-full bg-transparent"><canvas id="weightChart"></canvas></div>
+            </div>
+
+            <div class="bg-zinc-800 rounded-2xl p-5 border border-zinc-700/50 shadow-lg w-full space-y-3">
+                <h3 class="text-sm font-semibold text-zinc-400 mb-2 flex items-center gap-2"><i class="ph-fill ph-list-dashes text-emerald-500"></i> Registre complet des événements</h3>
+                <div id="full-history-list" class="space-y-2">
+                    <div class="p-3.5 rounded-xl text-center text-zinc-500 text-sm history-item-card border">
+                        Aucun historique enregistré pour le moment.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VUE PHOTOS & MERCHANDISING -->
+        <div id="view-photos" class="hidden space-y-4 fade-in">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-xl font-bold text-zinc-100">Galerie photos</h2>
+                <button onclick="document.getElementById('gallery-upload').click()" class="bg-emerald-600/20 text-emerald-500 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-emerald-600/30 transition-colors">
+                    <i class="ph-bold ph-plus"></i> Ajouter
+                </button>
+                <input type="file" id="gallery-upload" hidden accept="image/*" onchange="addPhotoToGallery(event)">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3" id="photo-grid">
+                <div class="col-span-2 text-center py-8 text-zinc-500 text-sm bg-zinc-800/50 rounded-xl border border-zinc-700/30">
+                    Aucune photo dans la galerie.
+                </div>
+            </div>
+
+            <div class="mt-8 bg-gradient-to-br from-zinc-800 to-zinc-900 merch-card-light rounded-2xl p-4 border border-zinc-700 shadow-lg relative overflow-hidden transition-colors">
+                <h3 class="text-sm font-bold text-zinc-100 mb-1 flex items-center gap-2"><i class="ph-fill ph-gift text-emerald-500"></i> Imprimez vos souvenirs !</h3>
+                <p class="text-xs text-zinc-400 mb-4">Créez des mugs, porte-clés ou affiches avec la photo de votre animal via notre partenaire.</p>
+                <div class="flex gap-3 mb-4 overflow-x-auto pb-2 hide-scrollbar">
+                    <div class="min-w-[80px] bg-zinc-800/80 btn-light-secondary border border-zinc-700 p-3 rounded-xl text-center cursor-pointer hover:border-emerald-500 transition-colors" onclick="window.open('https://www.cheerz.com', '_blank')">
+                        <i class="ph-fill ph-coffee text-2xl text-zinc-300 mb-1"></i><p class="text-[10px] text-zinc-300 font-medium">Mug</p>
+                    </div>
+                    <div class="min-w-[80px] bg-zinc-800/80 btn-light-secondary border border-zinc-700 p-3 rounded-xl text-center cursor-pointer hover:border-emerald-500 transition-colors" onclick="window.open('https://www.cheerz.com', '_blank')">
+                        <i class="ph-fill ph-image-square text-2xl text-zinc-300 mb-1"></i><p class="text-[10px] text-zinc-300 font-medium">Affiche</p>
+                    </div>
+                    <div class="min-w-[80px] bg-zinc-800/80 btn-light-secondary border border-zinc-700 p-3 rounded-xl text-center cursor-pointer hover:border-emerald-500 transition-colors" onclick="window.open('https://www.cheerz.com', '_blank')">
+                        <i class="ph-fill ph-key text-2xl text-zinc-300 mb-1"></i><p class="text-[10px] text-zinc-300 font-medium">Porte-clé</p>
+                    </div>
+                </div>
+                <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2 flex justify-between items-center">
+                    <span class="text-xs text-emerald-500 font-semibold tracking-wide">Code promo : PETCARE15 (-15%)</span>
+                    <button onclick="copyText('PETCARE15', 'Code PETCARE15 copié !')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] px-3 py-1.5 rounded-md font-medium transition-colors shadow-sm">Copier</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Barre de Navigation Mobile Inférieure -->
+    <nav id="bottom-nav" class="fixed bottom-0 left-0 right-0 h-20 bg-zinc-900 border-t border-zinc-800 z-30 pb-safe transition-colors duration-300">
+        <div class="flex justify-around items-center h-full max-w-md mx-auto relative px-2">
+            <button onclick="switchView('dashboard')" id="nav-dashboard" class="flex flex-col items-center p-2 text-emerald-500 transition-colors flex-1 hover:text-emerald-400">
+                <i class="ph-fill ph-house text-2xl transition-transform"></i><span class="text-[14px] font-medium mt-1">Accueil</span>
+            </button>
+            <button onclick="switchView('health')" id="nav-health" class="flex flex-col items-center p-2 text-zinc-500 hover:text-emerald-500 transition-colors flex-1">
+                <i class="ph-fill ph-heartbeat text-2xl transition-transform"></i><span class="text-[14px] font-medium mt-1">Santé</span>
+            </button>
+
+            <!-- Bouton Central Magique -->
+            <div class="flex-1 flex justify-center -mt-14 relative z-40">
+                <button onclick="openActionModal()" id="main-add-btn" class="bg-emerald-500 hover:bg-emerald-400 text-white w-14 h-14 rounded-full flex items-center justify-center transition-transform transform hover:scale-105 active:scale-95 border-4 border-zinc-900 transition-colors duration-300 shadow-[0_0_20px_rgba(16,185,129,0.35)]">
+                    <i class="ph-bold ph-plus text-2xl"></i>
+                </button>
+            </div>
+
+            <button onclick="switchView('photos')" id="nav-photos" class="flex flex-col items-center p-2 text-zinc-500 hover:text-emerald-500 transition-colors flex-1">
+                <i class="ph-fill ph-image text-2xl transition-transform"></i><span class="text-[14px] font-medium mt-1">Photos</span>
+            </button>
+            <button onclick="openModal('carnet-modal')" id="nav-carnet" class="flex flex-col items-center p-2 text-zinc-500 hover:text-emerald-500 transition-colors flex-1">
+                <i class="ph-fill ph-address-book text-2xl transition-transform"></i><span class="text-[14px] font-medium mt-1">Carnet</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Modale Profil Utilisateur (Bureau 2 colonnes / Mobile 1 colonne) -->
+    <div id="profile-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex justify-center items-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="modal-bg bg-zinc-800 rounded-2xl w-full max-w-sm md:max-w-4xl p-6 shadow-2xl border border-zinc-700 animate-fade-in flex flex-col max-h-[90vh]">
+            
+            <div class="flex justify-between items-center mb-6 shrink-0">
+                <h2 class="text-xl font-semibold text-zinc-100">Mon Profil</h2>
+                <button onclick="closeModal('profile-modal')" class="text-zinc-400 hover:text-emerald-500 bg-zinc-700/50 p-2 rounded-full"><i class="ph ph-x text-lg"></i></button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto hide-scrollbar md:grid md:grid-cols-2 md:gap-8 md:pr-2 pb-10 md:pb-0">
+                
+                <!-- Colonne Gauche : Identité & Paramètres -->
+                <div class="space-y-6">
+                    <div class="flex flex-col items-center">
+                        <div class="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500 mb-2 border border-emerald-500/30">
+                            <i class="ph-fill ph-user text-4xl"></i>
+                        </div>
+                        <div class="flex items-center justify-center gap-2 mt-1 mb-1 w-full px-4">
+                            <input type="text" id="profile-name" value="Propriétaire" class="bg-transparent text-xl font-bold text-zinc-100 text-center focus:outline-none focus:border-b border-emerald-500 w-auto min-w-[50px] max-w-[150px] transition-colors">
+                            <label for="profile-name" class="cursor-pointer text-zinc-500 hover:text-emerald-500"><i class="ph-fill ph-pencil-simple text-lg"></i></label>
+                        </div>
+                        <p class="text-sm text-zinc-400">utilisateur@example.com</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-400 mb-1">Langue de l'application</label>
+                        <div class="relative">
+                            <select class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none appearance-none">
+                                <option value="fr">Français</option><option value="en">English</option><option value="es">Español</option><option value="it">Italiano</option><option value="de">Deutsch</option>
+                            </select>
+                            <i class="ph-bold ph-caret-down absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-500 pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 pt-4 border-t border-zinc-700">
+                        <button onclick="document.getElementById('pwd-form').classList.remove('hidden'); this.classList.add('hidden');" id="btn-pwd-init" class="w-full py-3 bg-zinc-900 border border-zinc-700 hover:border-emerald-500 hover:text-emerald-500 rounded-xl font-medium text-zinc-300 flex items-center justify-center gap-2 transition-colors">
+                            <i class="ph-fill ph-lock-key"></i> Modifier le mot de passe
+                        </button>
+                        <div id="pwd-form" class="hidden p-3 bg-zinc-900/50 border border-zinc-700 rounded-xl fade-in space-y-3">
+                            <input type="password" placeholder="Nouveau mot de passe" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none">
+                            <input type="password" placeholder="Confirmer mot de passe" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none">
+                            <div class="flex gap-2">
+                                <button onclick="document.getElementById('pwd-form').classList.add('hidden'); document.getElementById('btn-pwd-init').classList.remove('hidden');" class="flex-1 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-xs hover:bg-zinc-700 transition-colors">Annuler</button>
+                                <button onclick="document.getElementById('pwd-form').classList.add('hidden'); document.getElementById('btn-pwd-init').classList.remove('hidden'); showToast('Mot de passe mis à jour');" class="flex-1 py-2 bg-emerald-600 text-white rounded-lg text-xs shadow-lg hover:bg-emerald-500 transition-colors">Valider</button>
+                            </div>
+                        </div>
+
+                        <button onclick="document.getElementById('logout-confirm').classList.remove('hidden'); this.classList.add('hidden');" id="btn-logout-init" class="w-full py-3 bg-red-500/10 border border-red-500/30 hover:bg-red-500 hover:text-white text-red-500 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors">
+                            <i class="ph-bold ph-sign-out"></i> Se déconnecter
+                        </button>
+                        <div id="logout-confirm" class="hidden p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-center fade-in">
+                            <p class="text-xs text-red-500 mb-3 font-medium">Attention : Pensez à vérifier que vos données sont bien synchronisées avant de vous déconnecter.</p>
+                            <div class="flex gap-2">
+                                <button onclick="document.getElementById('logout-confirm').classList.add('hidden'); document.getElementById('btn-logout-init').classList.remove('hidden');" class="flex-1 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-xs hover:bg-zinc-700 transition-colors">Annuler</button>
+                                <button onclick="closeModal('profile-modal'); showToast('Déconnexion réussie.'); resetLogoutBtn();" class="flex-1 py-2 bg-red-600 text-white rounded-lg text-xs shadow-lg hover:bg-red-500 transition-colors">Se déconnecter</button>
+                            </div>
+                        </div>
+                        
+                        <button onclick="document.getElementById('delete-confirm').classList.remove('hidden'); this.classList.add('hidden');" id="btn-delete-init" class="w-full py-3 bg-transparent border border-zinc-700 hover:border-red-500 hover:text-red-500 text-zinc-500 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors mt-2">
+                            <i class="ph-bold ph-trash"></i> Supprimer mon compte
+                        </button>
+                        <div id="delete-confirm" class="hidden mt-2 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-center fade-in">
+                            <p class="text-xs text-red-500 mb-3 font-medium">Action irréversible. Confirmer ?</p>
+                            <div class="flex gap-2">
+                                <button onclick="document.getElementById('delete-confirm').classList.add('hidden'); document.getElementById('btn-delete-init').classList.remove('hidden');" class="flex-1 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-xs hover:bg-zinc-700">Annuler</button>
+                                <button onclick="closeModal('profile-modal'); showToast('Données et compte supprimés.');" class="flex-1 py-2 bg-red-600 text-white rounded-lg text-xs shadow-lg hover:bg-red-500">Oui, supprimer</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Colonne Droite : Programme Récompenses & Gamification -->
+                <div class="space-y-4 mt-8 md:mt-0 pt-8 md:pt-0 border-t border-zinc-700 md:border-t-0 md:border-l md:pl-8">
+                    
+                    <h3 class="text-lg font-bold text-zinc-100 mb-2 flex items-center gap-2"><i class="ph-fill ph-medal text-emerald-500"></i> Programme Récompenses</h3>
+                    
+                    <div id="reward-banner" class="bg-gradient-to-r from-emerald-600/20 to-zinc-900 border border-emerald-500/30 p-4 rounded-xl flex justify-between items-center mb-4 transition-colors">
+                         <div>
+                             <p class="text-sm font-bold text-zinc-100">Cagnotte : <span id="cagnotte-total" class="text-emerald-500 transition-all duration-300">100 / 1000 Pts</span></p>
+                             <p class="text-xs text-zinc-400 mt-0.5">1000 Pts = 1 an d'abonnement offert !</p>
+                         </div>
+                         <i class="ph-fill ph-trophy text-3xl text-emerald-500/50"></i>
+                    </div>
+
+                    <!-- Newsletter (+100 Pts) -->
+                    <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-700 flex justify-between items-center">
+                        <div>
+                            <p class="font-medium text-sm text-zinc-100 flex items-center gap-2">Newsletter <span class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">100 Pts</span></p>
+                            <p id="nl-status-text" class="text-xs text-emerald-500 mt-0.5">Inscrit(e)</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" id="nl-toggle" class="sr-only peer" checked onchange="toggleNewsletter()">
+                          <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+
+                    <!-- Avis Google (+400 Pts) -->
+                    <div id="rating-section" class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-700 text-center relative overflow-hidden transition-all duration-300">
+                        <div class="flex justify-between items-center mb-3">
+                            <p class="font-medium text-sm text-zinc-100">Que pensez-vous de PetCare ?</p>
+                            <span class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">400 Pts</span>
+                        </div>
+                        <div class="flex gap-2 mb-3 text-2xl justify-center" id="star-container">
+                            <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverRating(1)" onmouseout="leaveRating()" onclick="selectRating(1)"></i>
+                            <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverRating(2)" onmouseout="leaveRating()" onclick="selectRating(2)"></i>
+                            <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverRating(3)" onmouseout="leaveRating()" onclick="selectRating(3)"></i>
+                            <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverRating(4)" onmouseout="leaveRating()" onclick="selectRating(4)"></i>
+                            <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverRating(5)" onmouseout="leaveRating()" onclick="selectRating(5)"></i>
+                        </div>
+                        <textarea id="rating-msg" placeholder="Laissez-nous un petit mot (Optionnel)..." class="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-xs text-zinc-100 mb-2 min-h-[60px] resize-none outline-none focus:border-emerald-500 transition-colors"></textarea>
+                        <button onclick="submitRating()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-medium text-white transition-colors">Envoyer mon avis</button>
+                    </div>
+
+                    <!-- Parrainage (+250 Pts) avec Code unique -->
+                    <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-700 relative overflow-hidden">
+                        <div class="flex justify-between items-center mb-2 relative z-10">
+                            <h3 class="font-medium text-sm text-zinc-100 flex items-center gap-2"><i class="ph-fill ph-users text-emerald-500"></i> Parrainage</h3>
+                            <span class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">250 Pts</span>
+                        </div>
+                        <p class="text-xs text-zinc-400 mb-3 relative z-10">5 filleuls = <strong class="text-emerald-500">50% de réduction</strong> !</p>
+                        
+                        <div class="mb-3">
+                            <label class="block text-[10px] text-zinc-400 mb-1">Votre code parrain :</label>
+                            <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-2 flex justify-between items-center relative z-10">
+                                <span class="text-sm font-mono text-zinc-100 font-bold tracking-wider">PET-USER-9X</span>
+                                <button onclick="copyText('PET-USER-9X', 'Code parrainage copié !')" class="text-zinc-400 hover:text-emerald-500 bg-zinc-900 p-1.5 rounded-md transition-colors shadow-sm"><i class="ph-bold ph-copy text-lg"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="mb-1 relative z-10">
+                            <div class="flex justify-between text-[10px] text-zinc-300 mb-1">
+                                <span>Progression Filleuls</span>
+                                <span class="font-medium text-emerald-400">0 / 5</span>
+                            </div>
+                            <div class="w-full bg-zinc-800 rounded-full h-1.5 border border-zinc-700/50">
+                                <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Affiliation (+250 Pts) avec Lien unique -->
+                    <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-700 relative overflow-hidden">
+                        <div class="flex justify-between items-center mb-2 relative z-10">
+                            <h3 class="font-medium text-sm text-zinc-100 flex items-center gap-2"><i class="ph-fill ph-handshake text-emerald-500"></i> Affiliation</h3>
+                            <span class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">250 Pts</span>
+                        </div>
+                        <p class="text-xs text-zinc-400 mb-3 relative z-10">5 affiliés actifs = <strong class="text-emerald-500">50% de réduction</strong> !</p>
+                        
+                        <div class="mb-3">
+                            <label class="block text-[10px] text-zinc-400 mb-1">Votre lien d'affiliation :</label>
+                            <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-2 flex justify-between items-center relative z-10">
+                                <span class="text-xs font-mono text-zinc-100 truncate mr-2">petcare.app/aff/user9x</span>
+                                <button onclick="copyText('https://petcare.app/aff/user9x', 'Lien d\'affiliation copié !')" class="text-zinc-400 hover:text-emerald-500 bg-zinc-900 p-1.5 rounded-md transition-colors shadow-sm shrink-0"><i class="ph-bold ph-copy text-lg"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="mb-1 relative z-10">
+                            <div class="flex justify-between text-[10px] text-zinc-300 mb-1">
+                                <span>Progression Affiliés</span>
+                                <span class="font-medium text-emerald-400">0 / 5</span>
+                            </div>
+                            <div class="w-full bg-zinc-800 rounded-full h-1.5 border border-zinc-700/50">
+                                <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale Action Centrale (Bouton +) -->
+    <div id="action-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex justify-center items-end sm:items-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="modal-bg bg-zinc-800 rounded-t-3xl sm:rounded-3xl w-full max-w-md p-6 shadow-2xl border border-zinc-700 animate-slide-up sm:animate-fade-in relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModal('action-modal')" class="absolute top-4 right-4 p-2 text-zinc-400 hover:text-emerald-500 bg-zinc-700/50 rounded-full transition-colors"><i class="ph ph-x"></i></button>
+            <h3 class="text-lg font-bold mb-6 text-center text-zinc-100">Ajouter un événement</h3>
+            
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">Pour qui ?</label>
+                    <div class="relative">
+                        <select id="form-pet" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none appearance-none">
+                            <option value="">Aucun animal</option>
+                        </select>
+                        <i class="ph-bold ph-caret-down absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-500 pointer-events-none"></i>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">Date</label>
+                    <div class="relative w-full flex">
+                        <input type="date" id="form-date" class="w-full flex-1 min-w-0 bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none box-border [color-scheme:dark]">
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 mb-6 border-t border-zinc-700 pt-4">
+                <button id="btn-type-health" onclick="selectActionForm('health')" class="flex flex-col items-center gap-2 p-3 bg-zinc-700 border-emerald-500 border rounded-xl text-white">
+                    <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center"><i class="ph-fill ph-syringe text-xl"></i></div>
+                    <span class="text-xs font-medium">Santé</span>
+                </button>
+                <button id="btn-type-weight" onclick="selectActionForm('weight')" class="flex flex-col items-center gap-2 p-3 bg-zinc-900 border-zinc-700 border rounded-xl text-zinc-400">
+                    <div class="w-10 h-10 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center"><i class="ph-fill ph-scales text-xl"></i></div>
+                    <span class="text-xs font-medium">Poids</span>
+                </button>
+                <button id="btn-type-food" onclick="selectActionForm('food')" class="flex flex-col items-center gap-2 p-3 bg-zinc-900 border-zinc-700 border rounded-xl text-zinc-400">
+                    <div class="w-10 h-10 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center"><i class="ph-fill ph-bone text-xl"></i></div>
+                    <span class="text-xs font-medium">Repas</span>
+                </button>
+            </div>
+            
+            <div id="form-input-health" class="mb-4 block">
+                <label class="block text-xs font-medium text-zinc-400 mb-1">Type de soin / Catégorie</label>
+                <div class="relative">
+                    <select id="form-health-select" onchange="toggleOtherHealth()" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:border-emerald-500 outline-none appearance-none">
+                        <option value="Vaccin">Vaccin</option><option value="Vermifuge">Vermifuge</option><option value="Anti-puces / Tiques">Anti-puces / Tiques</option><option value="Ostéopathe">Ostéopathe</option><option value="autre">Autre (préciser)...</option>
+                    </select>
+                    <i class="ph-bold ph-caret-down absolute right-4 top-1/2 transform -translate-y-1/2 text-zinc-500 pointer-events-none"></i>
+                </div>
+                <input type="text" id="form-health-other" placeholder="Ex: Traitement yeux..." class="hidden w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 mt-2 text-sm text-zinc-100 outline-none">
+            </div>
+            <div id="form-input-weight" class="mb-4 hidden">
+                <label class="block text-xs font-medium text-zinc-400 mb-1">Nouveau Poids (kg)</label>
+                <input type="number" step="0.1" id="form-weight-val" placeholder="Ex: 28.5" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none">
+            </div>
+            <div id="form-input-food" class="mb-4 hidden">
+                <label class="block text-xs font-medium text-zinc-400 mb-1">Détails du repas</label>
+                <input type="text" id="form-food-val" placeholder="Ex: Changement croquettes" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none">
+            </div>
+
+            <textarea id="form-notes" placeholder="Notes libres (Optionnel)..." class="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-sm text-zinc-100 outline-none mb-4 min-h-[80px] resize-none"></textarea>
+            
+            <div class="mb-6 border-t border-zinc-700 pt-4 w-full flex flex-col items-stretch">
+                <label class="block text-xs font-medium text-zinc-400 mb-1">Programmer un rappel ?</label>
+                <div class="relative mb-2">
+                    <select id="form-reminder" onchange="toggleOtherReminder()" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 focus:border-emerald-500 outline-none appearance-none">
+                        <option value="none">Pas de rappel</option><option value="1w">Dans 1 semaine</option><option value="1m">Dans 1 mois</option><option value="1y">Dans 1 an</option><option value="autre">Autre date (calendrier)...</option>
+                    </select>
+                    <i class="ph-bold ph-caret-down absolute right-4 top-1/2 transform -translate-y-1/2 text-zinc-500 pointer-events-none"></i>
+                </div>
+                
+                <div id="wrapper-reminder-other" class="relative hidden w-full bg-zinc-900 border border-zinc-700 rounded-xl overflow-hidden hover:border-emerald-500 transition-colors h-[46px] items-center justify-center flex-1 min-w-0 box-border">
+                    <div class="flex items-center gap-2 pointer-events-none absolute z-10">
+                        <i class="ph-bold ph-calendar-blank text-emerald-500 text-lg"></i>
+                        <span id="custom-date-text" class="text-sm font-medium text-zinc-400">Choisir une date</span>
+                    </div>
+                    <input type="date" id="form-reminder-other" onchange="updateCustomDateDisplay()" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
+                </div>
+            </div>
+            <button onclick="saveNewEvent()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-medium shadow-lg transition-colors text-white">Enregistrer l'événement</button>
+        </div>
+    </div>
+    
+    <!-- Modale Contact -->
+    <div id="contact-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex justify-center items-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="modal-bg bg-zinc-800 rounded-2xl w-full max-w-md p-6 shadow-2xl border border-zinc-700 animate-fade-in relative">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-zinc-100">Nous contacter</h2>
+                <button onclick="closeModal('contact-modal')" class="text-zinc-400 hover:text-emerald-500 bg-zinc-700/50 p-2 rounded-full transition-colors"><i class="ph ph-x text-lg"></i></button>
+            </div>
+            
+            <div id="contact-form-content" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">Votre Email</label>
+                    <input type="email" value="utilisateur@example.com" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none focus:border-emerald-500 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">Motif de votre demande</label>
+                    <div class="relative">
+                        <select class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 appearance-none outline-none focus:border-emerald-500 transition-colors">
+                            <option>Question sur mon compte</option>
+                            <option>Problème technique</option>
+                            <option>Suggestion d'amélioration</option>
+                            <option>Partenariat / Affiliation</option>
+                            <option>Autre demande</option>
+                        </select>
+                        <i class="ph-bold ph-caret-down absolute right-4 top-1/2 transform -translate-y-1/2 text-zinc-500 pointer-events-none"></i>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">Votre message</label>
+                    <textarea placeholder="Comment pouvons-nous vous aider aujourd'hui ?" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-sm text-zinc-100 outline-none focus:border-emerald-500 min-h-[120px] resize-none transition-colors"></textarea>
+                </div>
+                <button onclick="submitContact()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium shadow-lg transition-colors mt-2">Envoyer le message</button>
+            </div>
+
+            <div id="contact-success" class="hidden text-center py-6 fade-in">
+                <div class="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500 mx-auto mb-4 border border-emerald-500/30">
+                    <i class="ph-fill ph-paper-plane-tilt text-3xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-zinc-100 mb-2">Message envoyé !</h3>
+                <p class="text-sm text-zinc-400 mb-6">Notre équipe vous répondra avec plaisir sous 48 à 72 heures.</p>
+                <button onclick="closeModal('contact-modal'); resetContactForm();" class="py-2 px-6 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium shadow-lg transition-colors">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale Fiche Animal -->
+    <div id="pet-form-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex justify-center items-start sm:items-center p-2 sm:p-4 backdrop-blur-sm overflow-y-auto transition-opacity">
+        <div class="modal-bg bg-zinc-800 rounded-2xl w-full max-w-lg p-5 shadow-2xl border border-zinc-700 my-4 relative">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-zinc-100" id="pet-form-title">Dossier de l'animal</h2>
+                <button onclick="closeModal('pet-form-modal')" class="text-zinc-400 hover:text-emerald-500 bg-zinc-700/50 p-2 rounded-full"><i class="ph ph-x text-lg"></i></button>
+            </div>
+
+            <div class="flex gap-2 border-b border-zinc-700 mb-5 pb-1">
+                <button onclick="switchPetTab('tab-identity')" id="btn-tab-identity" class="px-3 py-2 text-sm font-medium text-emerald-400 border-b-2 border-emerald-500">Identité</button>
+                <button onclick="switchPetTab('tab-health')" id="btn-tab-health" class="px-3 py-2 text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-emerald-400">Santé & Médical</button>
+                <button onclick="switchPetTab('tab-reminders')" id="btn-tab-reminders" class="px-3 py-2 text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-emerald-400">Rappels</button>
+            </div>
+            
+            <div id="tab-identity" class="space-y-4 block">
+                <div class="flex justify-center mb-4">
+                    <div class="relative cursor-pointer group rounded-full w-24 h-24 border-2 border-zinc-600 hover:border-emerald-500 overflow-hidden" onclick="openCropperTool()">
+                        <img id="pet-form-avatar" src="https://placehold.co/200x200/27272a/f4f4f5?text=Photo" crossorigin="anonymous" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="ph-fill ph-crop text-white text-xl"></i></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2"><label class="block text-xs text-zinc-400 mb-1">Nom *</label><input type="text" id="pet-form-name" placeholder="Nom de votre animal" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none"></div>
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1">Espèce</label>
+                        <div class="relative"><select class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 appearance-none outline-none"><option>Chien</option><option>Chat</option></select><i class="ph-bold ph-caret-down absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-500"></i></div>
+                    </div>
+                    <div><label class="block text-xs text-zinc-400 mb-1">Race</label><input type="text" placeholder="Ex: Golden Retriever" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 outline-none"></div>
+                </div>
+                <button onclick="generateAdvancedPDF()" id="btn-export-pdf" class="w-full py-3 bg-zinc-900 border border-zinc-700 hover:border-emerald-500 hover:text-emerald-500 rounded-xl font-medium text-zinc-300 flex items-center justify-center gap-2 mt-4"><i class="ph-bold ph-file-pdf"></i> Exporter dossier médical (PDF)</button>
+            </div>
+
+            <div id="tab-health" class="space-y-4 hidden">
+                <div id="health-history-list" class="pt-2">
+                    <label class="block text-xs font-medium text-zinc-400 mb-2">Historique des soins récents</label>
+                    <div class="text-center py-6 text-zinc-500 text-xs">Aucun soin enregistré.</div>
+                </div>
+            </div>
+
+            <div id="tab-reminders" class="space-y-4 hidden">
+                <div class="text-center py-6 text-zinc-500 text-xs">Aucun rappel programmé.</div>
+            </div>
+            
+            <div class="mt-6 border-t border-zinc-700 pt-4 flex gap-3">
+                <button onclick="closeModal('pet-form-modal')" class="flex-1 py-3 bg-zinc-700 hover:bg-zinc-600 rounded-xl font-medium text-white transition-colors">Annuler</button>
+                <button onclick="closeModal('pet-form-modal'); showToast('Dossier sauvegardé !');" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-medium text-white shadow-lg transition-colors">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale Recadrage Photo (Cropper) -->
+    <div id="cropper-modal" class="fixed inset-0 bg-black/95 z-[100] hidden flex flex-col items-center justify-center p-4 backdrop-blur-md transition-opacity">
+        <div class="w-full max-w-sm bg-zinc-800 p-5 rounded-3xl shadow-2xl border border-zinc-700 flex flex-col gap-4">
+            <h3 class="text-white text-center font-bold text-lg">Ajuster la photo</h3>
+            <div class="w-full bg-black relative rounded-xl overflow-hidden border border-zinc-700" style="height: 300px;"><img id="cropper-image" src="" class="block max-w-full"></div>
+            <div class="flex gap-3 mt-2">
+                <button onclick="document.getElementById('avatar-upload-real').click()" class="flex-1 bg-zinc-700 hover:bg-zinc-600 text-white py-3 rounded-xl font-medium text-sm"><i class="ph-bold ph-image"></i> Changer</button>
+                <input type="file" id="avatar-upload-real" hidden accept="image/*" onchange="handleNewAvatarFile(event)">
+                <button onclick="saveCrop()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-medium text-sm"><i class="ph-bold ph-check"></i> Valider</button>
+            </div>
+            <button onclick="closeModal('cropper-modal')" class="text-zinc-500 hover:text-white text-sm mt-2">Annuler</button>
+        </div>
+    </div>
+
+    <!-- Modale Liste Animaux -->
+    <div id="pets-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex justify-center items-center p-4 backdrop-blur-sm">
+        <div class="modal-bg bg-zinc-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-zinc-700">
+            <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-semibold text-zinc-100">Mes Animaux</h2><button onclick="closeModal('pets-modal')" class="text-zinc-400 hover:text-emerald-500"><i class="ph ph-x text-xl"></i></button></div>
+            <div class="space-y-3 mb-4" id="pets-list-container">
+                <div class="text-center py-4 text-zinc-500 text-xs">Aucun animal enregistré.</div>
+            </div>
+            <button onclick="openPetForm()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-medium text-white flex items-center justify-center gap-2"><i class="ph-bold ph-plus"></i> Ajouter</button>
+        </div>
+    </div>
+    
+    <!-- Modale Gestion Catégories (Conservées intactes) -->
+    <div id="categories-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex justify-center items-center p-4 backdrop-blur-sm">
+        <div class="modal-bg bg-zinc-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-zinc-700">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-zinc-100">Gérer les catégories</h2>
+                <button onclick="closeModal('categories-modal')" class="text-zinc-400 hover:text-emerald-500"><i class="ph ph-x text-lg"></i></button>
+            </div>
+            
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="new-cat-input" placeholder="Nouvelle catégorie..." class="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none">
+                <button onclick="addCustomCategory()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl transition-colors"><i class="ph-bold ph-plus"></i></button>
+            </div>
+
+            <div id="category-list" class="space-y-3 mb-4 max-h-60 overflow-y-auto pr-1">
+                <div class="flex justify-between items-center bg-zinc-900 p-3 rounded-xl border border-zinc-700/50">
+                    <span class="flex items-center gap-2"><i class="ph-fill ph-tag text-emerald-500"></i> <span class="text-zinc-100 text-sm">Vaccin</span></span>
+                    <button class="text-zinc-500 hover:text-red-500"><i class="ph-fill ph-trash text-lg"></i></button>
+                </div>
+                <div class="flex justify-between items-center bg-zinc-900 p-3 rounded-xl border border-zinc-700/50">
+                    <span class="flex items-center gap-2"><i class="ph-fill ph-tag text-emerald-500"></i> <span class="text-zinc-100 text-sm">Vermifuge</span></span>
+                    <button class="text-zinc-500 hover:text-red-500"><i class="ph-fill ph-trash text-lg"></i></button>
+                </div>
+                <div class="flex justify-between items-center bg-zinc-900 p-3 rounded-xl border border-zinc-700/50">
+                    <span class="flex items-center gap-2"><i class="ph-fill ph-tag text-emerald-500"></i> <span class="text-zinc-100 text-sm">Anti-puces / Tiques</span></span>
+                    <button class="text-zinc-500 hover:text-red-500"><i class="ph-fill ph-trash text-lg"></i></button>
+                </div>
+                <div class="flex justify-between items-center bg-zinc-900 p-3 rounded-xl border border-zinc-700/50">
+                    <span class="flex items-center gap-2"><i class="ph-fill ph-tag text-emerald-500"></i> <span class="text-zinc-100 text-sm">Ostéopathe</span></span>
+                    <button class="text-zinc-500 hover:text-red-500"><i class="ph-fill ph-trash text-lg"></i></button>
+                </div>
+            </div>
+            
+            <button onclick="closeModal('categories-modal')" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-medium text-white transition-colors mt-2">Fermer</button>
+        </div>
+    </div>
+    
+    <!-- Pop-up Notation Growth Hacking -->
+    <div id="rating-popup" class="fixed inset-0 bg-black/80 z-[120] hidden flex justify-center items-center p-4 backdrop-blur-md transition-opacity">
+        <div class="bg-zinc-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl border border-zinc-700 text-center animate-slide-up">
+            <div class="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500 mx-auto mb-4 border border-emerald-500/30">
+                <i class="ph-fill ph-heart text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-zinc-100 mb-2">Vous aimez PetCare ?</h3>
+            <p class="text-sm text-zinc-400 mb-6">Votre avis nous aide énormément et vous fait gagner <strong class="text-emerald-500">400 Points</strong> !</p>
+            
+            <div class="flex gap-2 mb-6 text-3xl justify-center" id="popup-star-container">
+                <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverPopupRating(1)" onmouseout="leavePopupRating()" onclick="setPopupRating(1)"></i>
+                <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverPopupRating(2)" onmouseout="leavePopupRating()" onclick="setPopupRating(2)"></i>
+                <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverPopupRating(3)" onmouseout="leavePopupRating()" onclick="setPopupRating(3)"></i>
+                <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverPopupRating(4)" onmouseout="leavePopupRating()" onclick="setPopupRating(4)"></i>
+                <i class="ph-fill ph-star cursor-pointer transition-colors text-zinc-600" onmouseover="hoverPopupRating(5)" onmouseout="leavePopupRating()" onclick="setPopupRating(5)"></i>
+            </div>
+            
+            <button onclick="closeModal('rating-popup')" class="text-zinc-500 hover:text-zinc-300 text-sm font-medium transition-colors">Plus tard</button>
+        </div>
+    </div>
+    
+    <div id="carnet-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex justify-center items-center p-4"><div class="modal-bg bg-zinc-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-zinc-700"><div class="flex justify-between items-center mb-6"><h2 class="text-xl font-semibold text-zinc-100">Carnet d'adresses</h2><button onclick="closeModal('carnet-modal')" class="text-zinc-400 hover:text-emerald-500"><i class="ph ph-x text-lg"></i></button></div><div class="space-y-3 mb-4"><div class="bg-zinc-900 p-3 rounded-xl border border-zinc-700/50 flex justify-between items-center"><div><p class="font-medium text-zinc-100 text-sm">Vétérinaire</p><p class="text-xs text-zinc-400">Dr. Martin</p></div><a href="tel:0123456789" class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center transition-colors hover:bg-emerald-500 hover:text-white"><i class="ph-fill ph-phone text-lg"></i></a></div></div></div></div>
+    
+    <div id="legal-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex justify-center p-4 overflow-y-auto"><div class="modal-bg bg-zinc-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl border border-zinc-700 my-4 h-max"><div class="flex justify-between items-center mb-6"><h2 id="legal-title" class="text-xl font-bold text-zinc-100">Titre</h2><button onclick="closeModal('legal-modal')" class="text-zinc-400 hover:text-emerald-500"><i class="ph ph-x text-lg"></i></button></div><div id="legal-content" class="text-sm text-zinc-300"></div></div></div>
+
+    <!-- Script principal de l'application -->
+    <script>
+        let pointsNewsletter = 100;
+        let pointsAvis = 0; 
+        let pointsParrainage = 0;
+        let pointsAffiliation = 0;
+        let currentSelectedRating = 0;
+        let currentPopupSelectedRating = 0;
+
+        function updateCagnotte() {
+            const total = pointsNewsletter + pointsAvis + pointsParrainage + pointsAffiliation;
+            const cagnotteEl = document.getElementById('cagnotte-total');
+            if(cagnotteEl) cagnotteEl.innerText = total + " / 1000 Pts";
+            
+            if(pointsAvis > 0) {
+                const ratingSection = document.getElementById('rating-section');
+                if(ratingSection && !ratingSection.innerHTML.includes('Merci')) {
+                    ratingSection.innerHTML = '<div class="text-center py-4 fade-in"><i class="ph-fill ph-check-circle text-emerald-500 text-4xl mb-2"></i><p class="text-sm text-zinc-100 font-medium">Merci pour votre avis !</p><p class="text-xs text-emerald-500 font-bold mt-1">+400 Pts ajoutés à la cagnotte</p></div>';
+                    ratingSection.classList.replace('border-zinc-700', 'border-emerald-500/50');
+                    ratingSection.classList.replace('bg-zinc-900/50', 'bg-emerald-900/10');
+                }
+            }
+        }
+
+        function updateStarsUI(containerId, activeCount) {
+            const stars = document.querySelectorAll(`#${containerId} i`);
+            stars.forEach((star, index) => {
+                if (index < activeCount) {
+                    star.className = "ph-fill ph-star cursor-pointer transition-colors text-yellow-400";
+                } else {
+                    star.className = "ph-fill ph-star cursor-pointer transition-colors text-zinc-600";
+                }
+            });
+        }
+
+        function hoverRating(val) {
+            if(pointsAvis > 0) return;
+            updateStarsUI('star-container', val);
+        }
+        function leaveRating() {
+            if(pointsAvis > 0) return;
+            updateStarsUI('star-container', currentSelectedRating);
+        }
+        function selectRating(val) {
+            if(pointsAvis > 0) return;
+            currentSelectedRating = val;
+            updateStarsUI('star-container', currentSelectedRating);
+        }
+        function submitRating() { 
+            if(currentSelectedRating === 0) { showToast("Veuillez sélectionner une note."); return; }
+            showToast("Merci pour votre avis ! (+400 Pts)"); 
+            localStorage.setItem('petcare_rated', 'true'); 
+            pointsAvis = 400;
+            updateCagnotte();
+        }
+
+        function hoverPopupRating(val) {
+            updateStarsUI('popup-star-container', val);
+        }
+        function leavePopupRating() {
+            updateStarsUI('popup-star-container', currentPopupSelectedRating);
+        }
+        function setPopupRating(val) {
+            currentPopupSelectedRating = val;
+            updateStarsUI('popup-star-container', currentPopupSelectedRating);
+            setTimeout(() => { 
+                showToast("Merci pour votre avis ! (+400 Pts)"); 
+                localStorage.setItem('petcare_rated', 'true'); 
+                pointsAvis = 400;
+                updateCagnotte();
+                closeModal('rating-popup'); 
+            }, 600);
+        }
+
+        function toggleTheme() {
+            const body = document.body; const icon = document.getElementById('theme-icon');
+            body.classList.toggle('light-mode');
+            const bottomNav = document.getElementById('bottom-nav');
+            if (body.classList.contains('light-mode')) { 
+                icon.classList.replace('ph-sun', 'ph-moon'); 
+                if(bottomNav) bottomNav.style.setProperty('background-color', '#cfb4b2', 'important');
+                showToast("Mode Clair activé"); 
+            } else { 
+                icon.classList.replace('ph-moon', 'ph-sun'); 
+                if(bottomNav) bottomNav.style.removeProperty('background-color');
+                showToast("Mode Sombre activé"); 
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast'); document.getElementById('toast-msg').innerText = message;
+            toast.classList.remove('opacity-0', '-translate-y-full'); toast.classList.add('opacity-100', 'translate-y-0');
+            setTimeout(() => { toast.classList.remove('opacity-100', 'translate-y-0'); toast.classList.add('opacity-0', '-translate-y-full'); }, 3000);
+        }
+
+        const views = ['dashboard', 'health', 'photos'];
+        const navIcons = { 'dashboard': document.getElementById('nav-dashboard'), 'health': document.getElementById('nav-health'), 'photos': document.getElementById('nav-photos') };
+        function switchView(viewId) {
+            views.forEach(v => { document.getElementById('view-' + v).classList.add('hidden'); navIcons[v].classList.replace('text-emerald-500', 'text-zinc-500'); });
+            document.getElementById('view-' + viewId).classList.remove('hidden'); navIcons[viewId].classList.replace('text-zinc-500', 'text-emerald-500');
+            if(viewId === 'health' && window.myChart) setTimeout(() => window.myChart.update(), 50);
+        }
+
+        const sideMenu = document.getElementById('side-menu'); const menuOverlay = document.getElementById('menu-overlay');
+        function openMenu() { sideMenu.classList.remove('-translate-x-full'); menuOverlay.classList.remove('hidden'); setTimeout(() => menuOverlay.classList.remove('opacity-0'), 10); }
+        function closeMenu() { sideMenu.classList.add('-translate-x-full'); menuOverlay.classList.add('opacity-0'); setTimeout(() => menuOverlay.classList.add('hidden'), 300); }
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        
+        window.onclick = function(event) {
+            const modals = ['action-modal', 'pets-modal', 'pet-form-modal', 'categories-modal', 'carnet-modal', 'legal-modal', 'profile-modal', 'rating-popup', 'contact-modal'];
+            modals.forEach(id => { if (event.target === document.getElementById(id)) closeModal(id); });
+        }
+
+        function toggleNewsletter() {
+            const text = document.getElementById('nl-status-text');
+            if (document.getElementById('nl-toggle').checked) { 
+                text.innerText = "Inscrit(e)"; text.classList.replace('text-zinc-500', 'text-emerald-500'); 
+                pointsNewsletter = 100;
+                showToast("Newsletter activée (+100 Pts)"); 
+            } else { 
+                text.innerText = "Non inscrit(e)"; text.classList.replace('text-emerald-500', 'text-zinc-500'); 
+                pointsNewsletter = 0;
+                showToast("Newsletter désactivée"); 
+            }
+            updateCagnotte();
+        }
+
+        function copyText(text, successMsg) {
+            navigator.clipboard.writeText(text).then(() => { showToast(successMsg); }).catch(err => {
+                const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+                showToast(successMsg);
+            });
+        }
+        
+        function resetLogoutBtn() {
+            document.getElementById('logout-confirm').classList.add('hidden');
+            document.getElementById('btn-logout-init').classList.remove('hidden');
+        }
+
+        function submitContact() {
+            document.getElementById('contact-form-content').classList.add('hidden');
+            document.getElementById('contact-success').classList.remove('hidden');
+        }
+        function resetContactForm() {
+            setTimeout(() => {
+                document.getElementById('contact-success').classList.add('hidden');
+                document.getElementById('contact-form-content').classList.remove('hidden');
+            }, 300);
+        }
+
+        function openActionModal() { 
+            if(document.getElementById('form-date')) document.getElementById('form-date').valueAsDate = new Date();
+            selectActionForm('health'); openModal('action-modal'); 
+        }
+        function selectActionForm(type) {
+            ['health', 'weight', 'food'].forEach(id => {
+                document.getElementById('btn-type-' + id).classList.replace('bg-zinc-700', 'bg-zinc-900');
+                document.getElementById('btn-type-' + id).classList.replace('border-emerald-500', 'border-zinc-700');
+                document.getElementById('form-input-' + id).classList.add('hidden');
+                if(id === type) {
+                    document.getElementById('btn-type-' + id).classList.replace('bg-zinc-900', 'bg-zinc-700');
+                    document.getElementById('btn-type-' + id).classList.replace('border-zinc-700', 'border-emerald-500');
+                    document.getElementById('form-input-' + id).classList.remove('hidden');
+                }
+            });
+        }
+        function toggleOtherHealth() {
+            const s = document.getElementById('form-health-select'); const i = document.getElementById('form-health-other');
+            if(s.value === 'autre') { i.classList.remove('hidden'); i.focus(); } else { i.classList.add('hidden'); i.value = ''; }
+        }
+        function toggleOtherReminder() {
+            const s = document.getElementById('form-reminder'); const w = document.getElementById('wrapper-reminder-other');
+            if(s.value === 'autre') { w.classList.remove('hidden'); w.classList.add('flex'); } else { w.classList.add('hidden'); w.classList.remove('flex'); }
+        }
+        function updateCustomDateDisplay() {
+            const val = document.getElementById('form-reminder-other').value; const text = document.getElementById('custom-date-text');
+            if (val) { text.innerText = new Date(val).toLocaleDateString('fr-FR'); text.classList.replace('text-zinc-400', 'text-zinc-100'); }
+            else { text.innerText = 'Choisir une date'; text.classList.replace('text-zinc-100', 'text-zinc-400'); }
+        }
+        function saveNewEvent() { showToast("Événement enregistré !"); closeModal('action-modal'); }
+
+        function switchPetTab(tabId) {
+            ['tab-identity', 'tab-health', 'tab-reminders'].forEach(id => {
+                document.getElementById(id).classList.add('hidden'); document.getElementById('btn-' + id).className = "px-3 py-2 text-sm font-medium text-zinc-400 border-b-2 border-transparent hover:text-emerald-400 transition-colors";
+                if(id === tabId) { document.getElementById(id).classList.remove('hidden'); document.getElementById('btn-' + id).className = "px-3 py-2 text-sm font-medium text-emerald-400 border-b-2 border-emerald-500 transition-colors"; }
+            });
+        }
+        function openPetForm() { switchPetTab('tab-identity'); closeModal('pets-modal'); openModal('pet-form-modal'); }
+
+        let rawAvatarSrc = "https://placehold.co/200x200/27272a/f4f4f5?text=Photo";
+        let cropperInstance = null;
+        
+        function openCropperTool() {
+            const modal = document.getElementById('cropper-modal'); const img = document.getElementById('cropper-image');
+            if(cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+            img.src = rawAvatarSrc; modal.classList.remove('hidden');
+            setTimeout(() => {
+                cropperInstance = new Cropper(img, { aspectRatio: 1, viewMode: 1, dragMode: 'move', autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false, toggleDragModeOnDblclick: false, background: false });
+            }, 300);
+        }
+        function handleNewAvatarFile(event) { 
+            if(event.target.files[0]) { 
+                const reader = new FileReader(); 
+                reader.onload = e => { rawAvatarSrc = e.target.result; cropperInstance.replace(rawAvatarSrc); }; 
+                reader.readAsDataURL(event.target.files[0]); 
+            } 
+        }
+        function saveCrop() {
+            if(!cropperInstance) return;
+            const canvas = cropperInstance.getCroppedCanvas({ width: 400, height: 400 });
+            const data = canvas.toDataURL('image/png');
+            document.getElementById('pet-form-avatar').src = data; document.getElementById('main-pet-avatar').src = data;
+            closeModal('cropper-modal'); showToast('Photo mise à jour !');
+        }
+
+        function addCustomCategory() {
+            const input = document.getElementById('new-cat-input');
+            const val = input.value.trim();
+            if(!val) { showToast("Veuillez entrer un nom de catégorie."); return; }
+            const list = document.getElementById('category-list');
+            const item = document.createElement('div');
+            item.className = "flex justify-between items-center bg-zinc-900 p-3 rounded-xl border border-zinc-700/50";
+            item.innerHTML = `<span class="flex items-center gap-2"><i class="ph-fill ph-tag text-emerald-500"></i> <span class="text-zinc-100 text-sm">${val}</span></span><button onclick="this.parentElement.remove(); showToast('Catégorie supprimée');" class="text-zinc-500 hover:text-red-500"><i class="ph-fill ph-trash text-lg"></i></button>`;
+            list.appendChild(item);
+            input.value = '';
+            showToast("Catégorie ajoutée !");
+        }
+
+        function exportJSON() { showToast("Données téléchargées !"); closeMenu(); }
+        function importJSON(e) { if(e.target.files[0]) showToast("Données importées !"); closeMenu(); }
+        function openLegalPage(type) { 
+            const t = document.getElementById('legal-title'); const c = document.getElementById('legal-content');
+            if(type==='mentions') { t.innerText='Mentions Légales'; c.innerHTML='<p>Projet édité pour un usage personnel.</p>'; } 
+            else if(type==='rgpd') { t.innerText='RGPD'; c.innerHTML='<p>Vos données sont sécurisées.</p>'; } 
+            else { t.innerText='CGU'; c.innerHTML='<p>Acceptation des conditions.</p>'; }
+            closeMenu(); openModal('legal-modal'); 
+        }
+
+        function generateAdvancedPDF() { showToast("Génération en cours..."); setTimeout(() => showToast("PDF Téléchargé !"), 2000); }
+
+        function startAppTour() {
+            if (typeof Shepherd === 'undefined') { showToast("Erreur de connexion (Tour interactif)"); return; }
+
+            const tour = new Shepherd.Tour({
+                useModalOverlay: true,
+                defaultStepOptions: { classes: 'shadow-2xl font-sans', scrollTo: { behavior: 'smooth', block: 'center' }, cancelIcon: { enabled: true } }
+            });
+
+            const openMenuWait = () => new Promise(resolve => { openMenu(); setTimeout(resolve, 400); });
+            const closeMenuWait = () => new Promise(resolve => { closeMenu(); setTimeout(resolve, 400); });
+
+            tour.addStep({
+                title: 'Bienvenue sur PetCare ! 🐾',
+                text: '<b>Ne cliquez pas sur l\'application</b> pour le moment.<br><br>Utilisez les boutons <b>Suivant</b> de cette bulle pour découvrir comment maîtriser l\'outil étape par étape !',
+                buttons: [ { action: tour.cancel, text: 'Passer', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
+            });
+
+            tour.addStep({
+                title: 'Créez vos compagnons 🐶',
+                text: 'Ouvrez ce menu pour ajouter de nouveaux animaux et gérer toutes leurs fiches d\'identité.',
+                attachTo: { element: '#tour-menu-pets', on: 'right' },
+                beforeShowPromise: openMenuWait,
+                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
+            });
+
+            tour.addStep({
+                title: 'Catégories sur-mesure 🏷️',
+                text: 'Créez vos propres catégories (ostéopathe, traitement, friandise...) pour personnaliser l\'application.',
+                attachTo: { element: '#tour-menu-categories', on: 'right' },
+                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
+            });
+
+            tour.addStep({
+                title: 'Le Bouton Magique ✨',
+                text: 'Le cœur de l\'app ! Au quotidien, cliquez ici pour ajouter un nouveau poids, un soin, ou programmer un rappel en 3 secondes.',
+                attachTo: { element: '#main-add-btn', on: 'top' },
+                beforeShowPromise: closeMenuWait,
+                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
+            });
+
+            tour.addStep({
+                title: 'Suivi Santé 📈',
+                text: 'Retrouvez ici l\'historique complet de tous vos enregistrements (poids, soins, repas) et graphiques interactifs.',
+                attachTo: { element: '#nav-health', on: 'top' },
+                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
+            });
+
+            tour.addStep({
+                title: 'Galerie & Souvenirs 📸',
+                text: 'Stockez vos meilleures photos ici. Vous pourrez même les imprimer sur des mugs ou porte-clés via nos partenaires !',
+                attachTo: { element: '#nav-photos', on: 'top' },
+                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
+            });
+
+            tour.addStep({
+                title: 'Carnet d\'Adresses 📖',
+                text: 'Gardez toujours sous la main les numéros d\'urgence de votre vétérinaire ou toiletteur.',
+                attachTo: { element: '#nav-carnet', on: 'top' },
+                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
+            });
+
+            tour.addStep({
+                title: 'Vos données en sécurité 💾',
+                text: 'Importez, exportez ou connectez Google Drive pour sauvegarder toutes vos données.',
+                attachTo: { element: '#tour-menu-export', on: 'right' },
+                beforeShowPromise: openMenuWait,
+                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
+            });
+
+            tour.addStep({
+                title: 'Gagnez votre Abonnement ! 🎁',
+                text: 'Découvrez notre programme de fidélité dans votre profil. Cumulez 1000 points pour obtenir <strong>l\'application 100% gratuite</strong> l\'année suivante !',
+                attachTo: { element: '#profile-btn', on: 'bottom' },
+                beforeShowPromise: closeMenuWait,
+                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.next, text: 'Suivant' } ]
+            });
+
+            tour.addStep({
+                title: 'Confort Visuel 🌗',
+                text: 'Adaptez l\'apparence de l\'application à la sensibilité de vos yeux grâce à ce bouton.<br><br><b>Bonne utilisation !</b>',
+                attachTo: { element: '#btn-theme', on: 'bottom' },
+                buttons: [ { action: tour.back, text: 'Précédent', classes: 'shepherd-button-secondary' }, { action: tour.complete, text: 'Terminer' } ]
+            });
+
+            tour.start();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCagnotte();
+
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            window.myChart = new Chart(ctx, { 
+                type: 'line', data: { labels: ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'], datasets: [{ label: 'Poids (kg)', data: [0,0,0,0,0,0,0,0,0,0,0,0], borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderWidth: 3, pointBackgroundColor: '#10b981', pointBorderColor: '#ffffff', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(161,161,170,0.1)' }, ticks: { color: '#a1a1aa' } }, x: { grid: { display: false }, ticks: { color: '#a1a1aa' } } } } 
+            });
+
+            let opens = parseInt(localStorage.getItem('petcare_opens') || '0');
+            opens++;
+            localStorage.setItem('petcare_opens', opens);
+            
+            if (opens % 3 === 0 && pointsAvis === 0) {
+                setTimeout(() => { openModal('rating-popup'); }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>
