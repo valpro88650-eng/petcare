@@ -15,7 +15,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
-    <!-- Shepherd.js (Visite guidée) -->
+    <!-- Shepherd.js (Visite guidée v11 stable) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@11.0.1/dist/css/shepherd.css"/>
     <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11.0.1/dist/js/shepherd.min.js"></script>
     
@@ -56,7 +56,7 @@
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Styles Shepherd.js (Tutoriel adaptatif) */
+        /* Styles Shepherd.js (Tutoriel adaptatif Dark / Light) */
         .shepherd-element { background: #27272a !important; border: 1px solid #3f3f46 !important; border-radius: 1rem !important; z-index: 9999 !important; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5) !important; max-width: 350px !important; }
         .shepherd-header { background: transparent !important; padding: 1rem 1rem 0 !important; border: none !important; }
         .shepherd-title { color: #10b981 !important; font-weight: 700 !important; font-size: 1.1rem !important; }
@@ -683,7 +683,7 @@
         </div>
     </div>
     
-    <!-- Modale Gestion Catégories (Catégories de base conservées) -->
+    <!-- Modale Gestion Catégories -->
     <div id="categories-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex justify-center items-center p-4 backdrop-blur-sm">
         <div class="modal-bg bg-zinc-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-zinc-700">
             <div class="flex justify-between items-center mb-6">
@@ -762,7 +762,10 @@
                 supabaseClient = window.supabase.createClient(window.AppConfig.SUPABASE_URL, window.AppConfig.SUPABASE_ANON_KEY);
                 checkUserSession();
             } else {
-                console.warn("Paramètres Supabase non configurés dans config.js. Mode hors-ligne actif.");
+                console.warn("Paramètres Supabase non configurés dans config.js.");
+                const errBox = document.getElementById('auth-error');
+                errBox.innerText = "Veuillez renseigner vos identifiants Supabase dans config.js";
+                errBox.classList.remove('hidden');
             }
         }
 
@@ -793,7 +796,6 @@
                 document.getElementById('user-email-display').innerText = currentUser.email;
                 document.getElementById('contact-user-email').value = currentUser.email;
                 
-                // Génération automatique des codes parrainage et affiliation basés sur l'email
                 const hashName = currentUser.email.split('@')[0].toUpperCase().replace(/[^A-Z0-9]/g, '');
                 document.getElementById('user-referral-code').innerText = 'PET-' + hashName;
                 document.getElementById('user-affiliate-link').innerText = 'petcare.app/aff/' + hashName.toLowerCase();
@@ -834,10 +836,8 @@
             errBox.classList.add('hidden');
 
             if (!supabaseClient) {
-                // Mode simulation si config non renseignée
-                showToast("Connexion simulée réussie");
-                currentUser = { email: email };
-                onUserLoggedIn();
+                errBox.innerText = "Supabase n'est pas initialisé.";
+                errBox.classList.remove('hidden');
                 return;
             }
 
@@ -845,7 +845,7 @@
                 if (isSignUpMode) {
                     const { data, error } = await supabaseClient.auth.signUp({ email, password });
                     if (error) throw error;
-                    showToast("Compte créé avec succès !");
+                    showToast("Compte créé avec succès ! Vérifiez vos emails si requis.");
                 } else {
                     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
                     if (error) throw error;
